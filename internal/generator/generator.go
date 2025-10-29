@@ -141,13 +141,15 @@ func (g *Generator) generateProjectStructure(config metadata.ProjectConfig) map[
 	files["internal/handler/http.go"] = g.renderTemplate("handler.http.go", config)
 
 	// Database layer if specified
-	if config.DbDriver.ID != "" {
+	if len(config.Databases) > 0 {
 		// Database initialization
 		files["internal/storage/db.go"] = g.renderTemplate("storage.db.go", config)
 
-		// Repository implementation - organized by database type
-		repositoryFile := g.getRepositoryTemplate(config.Database.ID)
-		files[fmt.Sprintf("internal/storage/%s/repository.go", config.Database.ID)] = g.renderTemplate(repositoryFile, config)
+		// Repository implementations - organized by database type
+		for _, dbSelection := range config.Databases {
+			repositoryFile := g.getRepositoryTemplate(dbSelection.Database.ID)
+			files[fmt.Sprintf("internal/storage/%s/repository.go", dbSelection.Database.ID)] = g.renderTemplate(repositoryFile, config)
+		}
 	}
 
 	// Feature files
@@ -266,76 +268,86 @@ CMD ["./%s"]
 
 // generateDockerCompose creates a docker-compose.yml file
 func (g *Generator) generateDockerCompose(config metadata.ProjectConfig) string {
-	dbService := ""
-	if config.Database.ID == "postgres" {
-		dbService = `
+	var dbServices []string
+	var volumes []string
+	var dependsOnServices []string
+
+	for _, dbSelection := range config.Databases {
+		switch dbSelection.Database.ID {
+		case "postgres":
+			dbServices = append(dbServices, `
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: ` + config.ProjectName + `
+      POSTGRES_DB: `+config.ProjectName+`
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data`)
+			volumes = append(volumes, "postgres_data:")
+			dependsOnServices = append(dependsOnServices, "postgres")
 
-volumes:
-  postgres_data:`
-	} else if config.Database.ID == "mysql" {
-		dbService = `
+		case "mysql":
+			dbServices = append(dbServices, `
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_DATABASE: ` + config.ProjectName + `
+      MYSQL_DATABASE: `+config.ProjectName+`
       MYSQL_ROOT_PASSWORD: password
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql`)
+			volumes = append(volumes, "mysql_data:")
+			dependsOnServices = append(dependsOnServices, "mysql")
 
-volumes:
-  mysql_data:`
-	} else if config.Database.ID == "mongodb" {
-		dbService = `
+		case "mongodb":
+			dbServices = append(dbServices, `
   mongodb:
-    image: mongo:6.0
+    image: mongo:6
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - mongo_data:/data/db`)
+			volumes = append(volumes, "mongo_data:")
+			dependsOnServices = append(dependsOnServices, "mongodb")
 
-volumes:
-  mongo_data:`
-	} else if config.Database.ID == "redis" {
-		dbService = `
+		case "redis":
+			dbServices = append(dbServices, `
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis_data:/data`)
+			volumes = append(volumes, "redis_data:")
+			dependsOnServices = append(dependsOnServices, "redis")
+		}
+	}
 
-volumes:
-  redis_data:`
+	dbService := strings.Join(dbServices, "")
+	volumeService := ""
+	if len(volumes) > 0 {
+		volumeService = "\n\nvolumes:\n  " + strings.Join(volumes, "\n  ")
 	}
 
 	dependsOn := ""
-	if config.Database.ID != "" {
-		dependsOn = fmt.Sprintf(`    depends_on:
-      - %s`, config.Database.ID)
+	if len(dependsOnServices) > 0 {
+		dependsOn = "    depends_on:\n      - " + strings.Join(dependsOnServices, "\n      - ")
 	}
 
 	return fmt.Sprintf(`version: '3.8'
 
 services:
-  %s:
+  app:
     build: .
     ports:
       - "8080:8080"
     environment:
-      - APP_ENV=development
-%s%s`, config.ProjectName, dependsOn, dbService)
+      - APP_ENV=production
+%s%s%s`, dependsOn, dbService, volumeService)
 }
 
 // addFileToZip adds a file with content to the ZIP archive

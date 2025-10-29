@@ -110,12 +110,26 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build project configuration from form data
+	var databases []metadata.DatabaseSelection
+	selectedDatabases := r.Form["databases"]
+	for _, dbID := range selectedDatabases {
+		database := metadata.FindOption(appOptions.Databases, dbID)
+		// Get the corresponding driver from form data
+		driverID := r.FormValue("driver_" + dbID)
+		driver := metadata.FindOption(appOptions.DbDrivers, driverID)
+		if database.ID != "" && driver.ID != "" {
+			databases = append(databases, metadata.DatabaseSelection{
+				Database: database,
+				Driver:   driver,
+			})
+		}
+	}
+
 	config := metadata.ProjectConfig{
 		ProjectName:    r.FormValue("projectName"),
 		GoVersion:      r.FormValue("goVersion"),
 		HttpPackage:    metadata.FindOption(appOptions.Http, r.FormValue("httpPackage")),
-		Database:       metadata.FindOption(appOptions.Databases, r.FormValue("database")),
-		DbDriver:       metadata.FindOption(appOptions.DbDrivers, r.FormValue("dbDriver")),
+		Databases:      databases,
 		Features:       metadata.FindOptions(appOptions.Features, r.Form["features"]),
 		CustomPackages: r.Form["customPackages"],
 	}
@@ -155,12 +169,26 @@ func handleExplore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build project configuration from form data
+	var databases []metadata.DatabaseSelection
+	selectedDatabases := r.Form["databases"]
+	for _, dbID := range selectedDatabases {
+		database := metadata.FindOption(appOptions.Databases, dbID)
+		// Get the corresponding driver from form data
+		driverID := r.FormValue("driver_" + dbID)
+		driver := metadata.FindOption(appOptions.DbDrivers, driverID)
+		if database.ID != "" && driver.ID != "" {
+			databases = append(databases, metadata.DatabaseSelection{
+				Database: database,
+				Driver:   driver,
+			})
+		}
+	}
+
 	config := metadata.ProjectConfig{
 		ProjectName:    r.FormValue("projectName"),
 		GoVersion:      r.FormValue("goVersion"),
 		HttpPackage:    metadata.FindOption(appOptions.Http, r.FormValue("httpPackage")),
-		Database:       metadata.FindOption(appOptions.Databases, r.FormValue("database")),
-		DbDriver:       metadata.FindOption(appOptions.DbDrivers, r.FormValue("dbDriver")),
+		Databases:      databases,
 		Features:       metadata.FindOptions(appOptions.Features, r.Form["features"]),
 		CustomPackages: r.Form["customPackages"],
 	}
@@ -277,8 +305,32 @@ func handleFileContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse project configuration from form data or session
-	// For now, we'll create a default config and let user override via query params
+	// Parse database selections from query parameters
+	var databases []metadata.DatabaseSelection
+
+	// Get selected databases from query params (comma-separated)
+	selectedDatabasesStr := r.URL.Query().Get("databases")
+	if selectedDatabasesStr != "" {
+		selectedDatabases := strings.Split(selectedDatabasesStr, ",")
+		for _, dbID := range selectedDatabases {
+			dbID = strings.TrimSpace(dbID)
+			if dbID == "" {
+				continue
+			}
+			database := metadata.FindOption(appOptions.Databases, dbID)
+			// Get the corresponding driver from query parameters
+			driverID := r.URL.Query().Get("driver_" + dbID)
+			driver := metadata.FindOption(appOptions.DbDrivers, driverID)
+			if database.ID != "" && driver.ID != "" {
+				databases = append(databases, metadata.DatabaseSelection{
+					Database: database,
+					Driver:   driver,
+				})
+			}
+		}
+	}
+
+	// Parse project configuration from query parameters
 	config := metadata.ProjectConfig{
 		ProjectName: getQueryParam(r, "projectName", "my-go-app"),
 		GoVersion:   getQueryParam(r, "goVersion", "1.23"),
@@ -286,14 +338,9 @@ func handleFileContent(w http.ResponseWriter, r *http.Request) {
 			ID:   getQueryParam(r, "httpPackage", "gin"),
 			Name: "Gin",
 		},
-		Database: metadata.Option{
-			ID:   getQueryParam(r, "database", "postgres"),
-			Name: "PostgreSQL",
-		},
-		DbDriver: metadata.Option{
-			ID:   getQueryParam(r, "dbDriver", "gorm"),
-			Name: "GORM",
-		},
+		Databases:      databases,
+		Features:       []metadata.Option{}, // Features can be added later if needed
+		CustomPackages: []string{},          // Custom packages can be added later if needed
 	}
 
 	// Generate content based on the file path and configuration
@@ -562,18 +609,21 @@ func generateFileItems(config metadata.ProjectConfig) []FileItem {
 	}
 
 	// Add database storage layer if configured
-	if config.Database.ID != "" {
-		storageFile := fmt.Sprintf("internal/storage/%s/repository.go", config.Database.ID)
-		filePaths = append(filePaths, struct {
-			Path string
-			Icon string
-		}{storageFile, "fas fa-database text-purple-500"})
-
+	if len(config.Databases) > 0 {
 		// Add storage db.go file
 		filePaths = append(filePaths, struct {
 			Path string
 			Icon string
 		}{"internal/storage/db.go", "fas fa-database text-purple-500"})
+
+		// Add repository files for each database
+		for _, dbSelection := range config.Databases {
+			storageFile := fmt.Sprintf("internal/storage/%s/repository.go", dbSelection.Database.ID)
+			filePaths = append(filePaths, struct {
+				Path string
+				Icon string
+			}{storageFile, "fas fa-database text-purple-500"})
+		}
 	}
 
 	// Add feature files
@@ -802,8 +852,12 @@ func generateFileContent(filePath string) string {
 		ProjectName: "my-go-app",
 		GoVersion:   "1.23",
 		HttpPackage: metadata.Option{ID: "gin", Name: "Gin"},
-		Database:    metadata.Option{ID: "postgres", Name: "PostgreSQL"},
-		DbDriver:    metadata.Option{ID: "gorm", Name: "GORM"},
+		Databases: []metadata.DatabaseSelection{
+			{
+				Database: metadata.Option{ID: "postgres", Name: "PostgreSQL"},
+				Driver:   metadata.Option{ID: "gorm", Name: "GORM"},
+			},
+		},
 	})
 }
 
@@ -1013,31 +1067,65 @@ require (`, config.ProjectName, config.GoVersion)
 	}
 
 	// Add database driver dependencies
-	switch config.DbDriver.ID {
-	case "gorm":
-		content += "\n\tgorm.io/gorm v1.25.5"
-		switch config.Database.ID {
-		case "postgres":
-			content += "\n\tgorm.io/driver/postgres v1.5.4"
-		case "mysql":
-			content += "\n\tgorm.io/driver/mysql v1.5.2"
-		case "sqlite":
-			content += "\n\tgorm.io/driver/sqlite v1.5.4"
+	addedDrivers := make(map[string]bool)
+	for _, dbSelection := range config.Databases {
+		driverKey := dbSelection.Driver.ID
+		if !addedDrivers[driverKey] {
+			switch dbSelection.Driver.ID {
+			case "gorm":
+				content += "\n\tgorm.io/gorm v1.25.5"
+				addedDrivers[driverKey] = true
+			case "sqlx":
+				content += "\n\tgithub.com/jmoiron/sqlx v1.3.5"
+				addedDrivers[driverKey] = true
+			case "mongo-driver":
+				content += "\n\tgo.mongodb.org/mongo-driver/mongo v1.13.1"
+				addedDrivers[driverKey] = true
+			case "redis-client":
+				content += "\n\tgithub.com/redis/go-redis/v9 v9.3.0"
+				addedDrivers[driverKey] = true
+			}
 		}
-	case "sqlx":
-		content += "\n\tgithub.com/jmoiron/sqlx v1.3.5"
-		switch config.Database.ID {
-		case "postgres":
-			content += "\n\tgithub.com/lib/pq v1.10.9"
-		case "mysql":
-			content += "\n\tgithub.com/go-sql-driver/mysql v1.7.1"
-		case "sqlite":
-			content += "\n\tgithub.com/mattn/go-sqlite3 v1.14.18"
+
+		// Add database-specific driver dependencies
+		switch dbSelection.Driver.ID {
+		case "gorm":
+			switch dbSelection.Database.ID {
+			case "postgres":
+				if !addedDrivers["gorm-postgres"] {
+					content += "\n\tgorm.io/driver/postgres v1.5.4"
+					addedDrivers["gorm-postgres"] = true
+				}
+			case "mysql":
+				if !addedDrivers["gorm-mysql"] {
+					content += "\n\tgorm.io/driver/mysql v1.5.2"
+					addedDrivers["gorm-mysql"] = true
+				}
+			case "sqlite":
+				if !addedDrivers["gorm-sqlite"] {
+					content += "\n\tgorm.io/driver/sqlite v1.5.4"
+					addedDrivers["gorm-sqlite"] = true
+				}
+			}
+		case "sqlx":
+			switch dbSelection.Database.ID {
+			case "postgres":
+				if !addedDrivers["sqlx-postgres"] {
+					content += "\n\tgithub.com/lib/pq v1.10.9"
+					addedDrivers["sqlx-postgres"] = true
+				}
+			case "mysql":
+				if !addedDrivers["sqlx-mysql"] {
+					content += "\n\tgithub.com/go-sql-driver/mysql v1.7.1"
+					addedDrivers["sqlx-mysql"] = true
+				}
+			case "sqlite":
+				if !addedDrivers["sqlx-sqlite"] {
+					content += "\n\tgithub.com/mattn/go-sqlite3 v1.14.18"
+					addedDrivers["sqlx-sqlite"] = true
+				}
+			}
 		}
-	case "mongo-driver":
-		content += "\n\tgo.mongodb.org/mongo-driver v1.13.1"
-	case "redis-client":
-		content += "\n\tgithub.com/redis/go-redis/v9 v9.3.1"
 	}
 
 	content += "\n)"
@@ -1344,8 +1432,12 @@ func (h *Handler) ListUsers(c *gin.Context) {
 func generateStorageContent(filePath string) string {
 	return generateStorageContentWithConfig(filePath, metadata.ProjectConfig{
 		ProjectName: "my-go-app",
-		Database:    metadata.Option{ID: "postgres", Name: "PostgreSQL"},
-		DbDriver:    metadata.Option{ID: "gorm", Name: "GORM"},
+		Databases: []metadata.DatabaseSelection{
+			{
+				Database: metadata.Option{ID: "postgres", Name: "PostgreSQL"},
+				Driver:   metadata.Option{ID: "gorm", Name: "GORM"},
+			},
+		},
 	})
 }
 
@@ -1368,18 +1460,25 @@ func generateStorageContentWithConfig(filePath string, config metadata.ProjectCo
 
 	imports = append(imports, "\"context\"", "\"fmt\"", fmt.Sprintf("\"%s/internal/domain\"", config.ProjectName))
 
-	switch config.DbDriver.ID {
-	case "gorm":
-		imports = append(imports, "\"gorm.io/gorm\"")
-		switch config.Database.ID {
-		case "postgres":
-			imports = append(imports, "\"gorm.io/driver/postgres\"")
-		case "mysql":
-			imports = append(imports, "\"gorm.io/driver/mysql\"")
-		case "sqlite":
-			imports = append(imports, "\"gorm.io/driver/sqlite\"")
-		}
-		connectionCode = `// NewConnection creates a new database connection using GORM
+	// Default to GORM with PostgreSQL for legacy compatibility
+	connectionCode = `// NewConnection creates a new database connection
+func NewConnection(dsn string) (interface{}, error) {
+	// This is a placeholder - actual implementation depends on selected database
+	return nil, fmt.Errorf("database connection not configured")
+}`
+	basicMethods = `// CreateUser creates a new user in storage
+func (s *Storage) CreateUser(ctx context.Context, user *domain.User) error {
+	// This is a placeholder - actual implementation depends on selected database
+	return fmt.Errorf("storage not implemented")
+}`
+
+	// Handle multiple databases - use first database for basic functionality
+	if len(config.Databases) > 0 {
+		dbSelection := config.Databases[0]
+		switch dbSelection.Driver.ID {
+		case "gorm":
+			imports = append(imports, "\"gorm.io/gorm\"")
+			connectionCode = `// NewConnection creates a new database connection using GORM
 func NewConnection(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -1387,25 +1486,16 @@ func NewConnection(dsn string) (*gorm.DB, error) {
 	}
 	return db, nil
 }`
-		basicMethods = `// CreateUser creates a new user in storage
+			basicMethods = `// CreateUser creates a new user in storage
 func (s *Storage) CreateUser(ctx context.Context, user *domain.User) error {
 	if err := s.db.WithContext(ctx).Create(user).Error; err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 	return nil
-}
-
-// GetUserByID retrieves a user by ID from storage
-func (s *Storage) GetUserByID(ctx context.Context, id uint) (*domain.User, error) {
-	var user domain.User
-	if err := s.db.WithContext(ctx).First(&user, id).Error; err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-	return &user, nil
 }`
-	case "sqlx":
-		imports = append(imports, "\"github.com/jmoiron/sqlx\"")
-		connectionCode = `// NewConnection creates a new database connection using sqlx
+		case "sqlx":
+			imports = append(imports, "\"github.com/jmoiron/sqlx\"")
+			connectionCode = `// NewConnection creates a new database connection using sqlx
 func NewConnection(dsn string) (*sqlx.DB, error) {
 	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
@@ -1413,7 +1503,7 @@ func NewConnection(dsn string) (*sqlx.DB, error) {
 	}
 	return db, nil
 }`
-		basicMethods = `// CreateUser creates a new user in storage
+			basicMethods = `// CreateUser creates a new user in storage
 func (s *Storage) CreateUser(ctx context.Context, user *domain.User) error {
 	query := "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id"
 	err := s.db.GetContext(ctx, &user.ID, query, user.Name, user.Email, user.Password)
@@ -1422,39 +1512,7 @@ func (s *Storage) CreateUser(ctx context.Context, user *domain.User) error {
 	}
 	return nil
 }`
-	case "mongo-driver":
-		imports = append(imports, "\"go.mongodb.org/mongo-driver/mongo\"", "\"go.mongodb.org/mongo-driver/bson\"")
-		connectionCode = `// NewConnection creates a new MongoDB connection
-func NewConnection(uri string) (*mongo.Client, error) {
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MongoDB: %w", err)
-	}
-	return client, nil
-}`
-		basicMethods = `// CreateUser creates a new user in storage
-func (s *Storage) CreateUser(ctx context.Context, user *domain.User) error {
-	collection := s.database.Collection("users")
-	_, err := collection.InsertOne(ctx, user)
-	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
-	}
-	return nil
-}`
-	default:
-		connectionCode = `// NewConnection creates a new database connection
-func NewConnection(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open connection: %w", err)
-	}
-	return db, nil
-}`
-		basicMethods = `// CreateUser creates a new user in storage
-func (s *Storage) CreateUser(ctx context.Context, user *domain.User) error {
-	// Add database operations here
-	return fmt.Errorf("not implemented")
-}`
+		}
 	}
 
 	// Build import block

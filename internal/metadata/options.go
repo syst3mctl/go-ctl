@@ -24,15 +24,20 @@ type ProjectOptions struct {
 	Features   []Option `json:"features"`
 }
 
+// DatabaseSelection represents a database with its selected driver
+type DatabaseSelection struct {
+	Database Option `json:"database"`
+	Driver   Option `json:"driver"`
+}
+
 // ProjectConfig represents the user's selected configuration
 type ProjectConfig struct {
-	ProjectName    string   `json:"projectName"`
-	GoVersion      string   `json:"goVersion"`
-	HttpPackage    Option   `json:"httpPackage"`
-	Database       Option   `json:"database"`
-	DbDriver       Option   `json:"dbDriver"`
-	Features       []Option `json:"features"`
-	CustomPackages []string `json:"customPackages"`
+	ProjectName    string              `json:"projectName"`
+	GoVersion      string              `json:"goVersion"`
+	HttpPackage    Option              `json:"httpPackage"`
+	Databases      []DatabaseSelection `json:"databases"`
+	Features       []Option            `json:"features"`
+	CustomPackages []string            `json:"customPackages"`
 }
 
 // LoadOptions loads the project options from options.json file
@@ -75,13 +80,15 @@ func FindOptions(options []Option, ids []string) []Option {
 func ValidateConfig(config ProjectConfig) []string {
 	var warnings []string
 
-	// Check for incompatible combinations
-	if config.Database.ID == "mongodb" && config.DbDriver.ID == "gorm" {
-		warnings = append(warnings, "GORM does not support MongoDB. Consider using the MongoDB official driver instead.")
-	}
+	// Check for incompatible combinations in selected databases
+	for _, dbSelection := range config.Databases {
+		if dbSelection.Database.ID == "mongodb" && dbSelection.Driver.ID == "gorm" {
+			warnings = append(warnings, "GORM does not support MongoDB. Consider using the MongoDB official driver instead.")
+		}
 
-	if config.Database.ID == "bigquery" && config.DbDriver.ID != "database-sql" {
-		warnings = append(warnings, "BigQuery works best with the standard database/sql driver.")
+		if dbSelection.Database.ID == "bigquery" && dbSelection.Driver.ID != "database-sql" {
+			warnings = append(warnings, "BigQuery works best with the standard database/sql driver.")
+		}
 	}
 
 	// Validate project name
@@ -106,13 +113,15 @@ func (config ProjectConfig) GetAllImports() []string {
 		imports = append(imports, config.HttpPackage.ImportPath)
 	}
 
-	// Add database driver import and its dependencies
-	if config.DbDriver.ImportPath != "" {
-		imports = append(imports, config.DbDriver.ImportPath)
+	// Add database driver imports and their dependencies
+	for _, dbSelection := range config.Databases {
+		if dbSelection.Driver.ImportPath != "" {
+			imports = append(imports, dbSelection.Driver.ImportPath)
 
-		// Add database-specific dependencies
-		if deps, exists := config.DbDriver.Dependencies[config.Database.ID]; exists {
-			imports = append(imports, deps...)
+			// Add database-specific dependencies
+			if deps, exists := dbSelection.Driver.Dependencies[dbSelection.Database.ID]; exists {
+				imports = append(imports, deps...)
+			}
 		}
 	}
 

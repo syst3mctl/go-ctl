@@ -213,13 +213,9 @@ const indexTemplate = `<!DOCTYPE html>
                                 <i class="fas fa-database mr-1"></i>Database
                             </label>
                             <div class="space-y-2">
-                                <div>
-                                    <input type="radio" name="database" value="" id="db-none" checked class="mr-2">
-                                    <label for="db-none" class="text-sm">None</label>
-                                </div>
                                 {{range .Options.Databases}}
                                 <div>
-                                    <input type="radio" name="database" value="{{.ID}}" id="db-{{.ID}}" class="mr-2">
+                                    <input type="checkbox" name="databases" value="{{.ID}}" id="db-{{.ID}}" class="mr-2">
                                     <label for="db-{{.ID}}" class="text-sm font-medium">{{.Name}}</label>
                                     <p class="text-xs text-gray-600 ml-6">{{.Description}}</p>
                                 </div>
@@ -227,22 +223,12 @@ const indexTemplate = `<!DOCTYPE html>
                             </div>
                         </div>
 
-                        <div>
+                        <div id="driver-section" style="display: none;">
                             <label class="block text-sm font-medium text-gray-700 mb-3">
-                                <i class="fas fa-plug mr-1"></i>Database Driver
+                                <i class="fas fa-plug mr-1"></i>Database Drivers
                             </label>
-                            <div class="space-y-2">
-                                <div>
-                                    <input type="radio" name="dbDriver" value="" id="driver-none" checked class="mr-2">
-                                    <label for="driver-none" class="text-sm">None</label>
-                                </div>
-                                {{range .Options.DbDrivers}}
-                                <div>
-                                    <input type="radio" name="dbDriver" value="{{.ID}}" id="driver-{{.ID}}" class="mr-2">
-                                    <label for="driver-{{.ID}}" class="text-sm font-medium">{{.Name}}</label>
-                                    <p class="text-xs text-gray-600 ml-6">{{.Description}}</p>
-                                </div>
-                                {{end}}
+                            <div id="driver-container" class="space-y-4">
+                                <!-- Dynamic driver options will be inserted here -->
                             </div>
                         </div>
                     </div>
@@ -445,71 +431,85 @@ const indexTemplate = `<!DOCTYPE html>
             }
         }
 
-        // File selection and content loading
-        function selectFile(filepath, filename, element) {
-            // Remove active state from all file items
-            document.querySelectorAll('.file-item').forEach(item => {
-                item.classList.remove('active');
-            });
+        // Database driver selection functions
+        function updateDriverOptions() {
+            const databaseCheckboxes = document.querySelectorAll('input[name="databases"]:checked');
+            const driverSection = document.getElementById('driver-section');
+            const driverContainer = document.getElementById('driver-container');
 
-            // Add active state to selected file
-            element.classList.add('active');
+            // Clear existing driver options
+            driverContainer.innerHTML = '';
 
-            // Update header
-            const icon = getFileIcon(filename);
-            document.getElementById('current-file-header').innerHTML =
-                '<i class="' + icon + ' mr-2"></i>' + filepath;
-
-            // Show copy button
-            document.getElementById('copy-btn').classList.remove('hidden');
-
-            // Load file content via HTMX
-            htmx.ajax('GET', '/file-content?path=' + encodeURIComponent(filepath), {
-                target: '#file-content',
-                swap: 'innerHTML'
-            });
-
-            // Trigger syntax highlighting after content loads
-            setTimeout(() => {
-                if (window.Prism) {
-                    Prism.highlightAll();
-                }
-            }, 100);
-        }
-
-        function getFileIcon(filename) {
-            const ext = filename.split('.').pop().toLowerCase();
-            switch(ext) {
-                case 'go': return 'fab fa-golang text-blue-500';
-                case 'mod': return 'fas fa-cube text-green-500';
-                case 'json': return 'fas fa-brackets-curly text-yellow-500';
-                case 'yml':
-                case 'yaml': return 'fas fa-file-code text-orange-500';
-                case 'md': return 'fab fa-markdown text-blue-600';
-                case 'toml': return 'fas fa-cog text-gray-500';
-                case 'env': return 'fas fa-key text-green-600';
-                default: return 'fas fa-file-code text-gray-500';
+            if (databaseCheckboxes.length === 0) {
+                driverSection.style.display = 'none';
+                return;
             }
-        }
 
-        // Copy file content
-        function copyFileContent() {
-            const content = document.getElementById('file-content').textContent;
-            navigator.clipboard.writeText(content).then(() => {
-                const btn = document.getElementById('copy-btn');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
-                btn.classList.add('bg-green-500', 'hover:bg-green-600');
-                btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+            driverSection.style.display = 'block';
 
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.remove('bg-green-500', 'hover:bg-green-600');
-                    btn.classList.add('bg-blue-500', 'hover:bg-blue-600');
-                }, 2000);
+            // Define driver options for each database
+            const driverOptions = {
+                'postgres': [
+                    { id: 'gorm', name: 'GORM', description: 'The fantastic ORM library for Golang' },
+                    { id: 'sqlx', name: 'sqlx', description: 'Extensions to database/sql with easier scanning' },
+                    { id: 'database-sql', name: 'database/sql', description: 'Standard library SQL interface' }
+                ],
+                'mysql': [
+                    { id: 'gorm', name: 'GORM', description: 'The fantastic ORM library for Golang' },
+                    { id: 'sqlx', name: 'sqlx', description: 'Extensions to database/sql with easier scanning' },
+                    { id: 'database-sql', name: 'database/sql', description: 'Standard library SQL interface' }
+                ],
+                'sqlite': [
+                    { id: 'gorm', name: 'GORM', description: 'The fantastic ORM library for Golang' },
+                    { id: 'sqlx', name: 'sqlx', description: 'Extensions to database/sql with easier scanning' },
+                    { id: 'database-sql', name: 'database/sql', description: 'Standard library SQL interface' }
+                ],
+                'mongodb': [
+                    { id: 'mongo-driver', name: 'MongoDB Driver', description: 'Official MongoDB Go driver' }
+                ],
+                'redis': [
+                    { id: 'redis-client', name: 'Redis Client', description: 'Redis client with Cluster, Sentinel support' }
+                ],
+                'bigquery': [
+                    { id: 'database-sql', name: 'database/sql', description: 'Standard library SQL interface' }
+                ]
+            };
+
+            // Create driver sections for selected databases
+            databaseCheckboxes.forEach(checkbox => {
+                const database = checkbox.value;
+                if (driverOptions[database]) {
+                    const dbSection = document.createElement('div');
+                    dbSection.className = 'border border-gray-200 rounded-lg p-4';
+                    dbSection.innerHTML =
+                        '<h4 class="font-medium text-gray-900 mb-3 capitalize">' + database + ' Driver</h4>' +
+                        '<div class="space-y-2">' +
+                            driverOptions[database].map(function(driver) {
+                                return '<label class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 border border-gray-200 cursor-pointer transition-colors duration-150">' +
+                                    '<input type="radio" name="driver_' + database + '" value="' + driver.id + '" class="mt-1 text-blue-600 border-gray-300 focus:ring-blue-500" required>' +
+                                    '<div class="flex-1 min-w-0">' +
+                                        '<div class="text-sm font-medium text-gray-900">' + driver.name + '</div>' +
+                                        '<div class="text-sm text-gray-500">' + driver.description + '</div>' +
+                                    '</div>' +
+                                '</label>';
+                            }).join('') +
+                        '</div>';
+                    driverContainer.appendChild(dbSection);
+                }
             });
         }
 
+        // Initialize driver options on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners to database checkboxes
+            document.querySelectorAll('input[name="databases"]').forEach(checkbox => {
+                checkbox.addEventListener('change', updateDriverOptions);
+            });
+
+            // Initial call to set up driver options
+            updateDriverOptions();
+        });
+        // File tree and explorer functions
         // Initialize file tree - expand root folders automatically
         function initializeFileTree() {
             // Show all root level items (level 0)
@@ -528,6 +528,7 @@ const indexTemplate = `<!DOCTYPE html>
 
         // Tree functionality
         function toggleFolder(folderElement) {
+            console.log('toggleFolder called with:', folderElement);
             const chevron = folderElement.querySelector('.folder-chevron');
             const isExpanded = chevron.classList.contains('expanded');
             const folderPath = folderElement.closest('.tree-item').dataset.path;
@@ -638,8 +639,6 @@ const indexTemplate = `<!DOCTYPE html>
                 '</div>' +
                 '</div>';
 
-
-
             // Get project configuration from form
             const form = document.getElementById('project-form');
             const formData = new FormData(form);
@@ -650,8 +649,19 @@ const indexTemplate = `<!DOCTYPE html>
             params.append('projectName', formData.get('projectName') || 'my-go-app');
             params.append('goVersion', formData.get('goVersion') || '1.23');
             params.append('httpPackage', formData.get('httpPackage') || 'gin');
-            params.append('database', formData.get('database') || 'postgres');
-            params.append('dbDriver', formData.get('dbDriver') || 'gorm');
+
+            // Handle multiple database selections
+            const selectedDatabases = formData.getAll('databases');
+            if (selectedDatabases.length > 0) {
+                params.append('databases', selectedDatabases.join(','));
+                // Add driver selections for each database
+                selectedDatabases.forEach(dbId => {
+                    const driverValue = formData.get('driver_' + dbId);
+                    if (driverValue) {
+                        params.append('driver_' + dbId, driverValue);
+                    }
+                });
+            }
 
             // Fetch file content with configuration
             fetch('/file-content?' + params.toString())
@@ -743,7 +753,11 @@ const indexTemplate = `<!DOCTYPE html>
         // Initialize tree when content is loaded via HTMX
         document.addEventListener('htmx:afterSettle', function(event) {
             if (event.detail.target.id === 'file-tree-content') {
+                console.log('Initializing file tree after HTMX load');
                 initializeFileTree();
+                // Ensure functions are still globally accessible
+                window.toggleFolder = toggleFolder;
+                window.selectFile = selectFile;
             }
         });
 
@@ -778,6 +792,10 @@ const indexTemplate = `<!DOCTYPE html>
                 closeExploreModal();
             }
         });
+
+        // Ensure functions are globally accessible
+        window.toggleFolder = toggleFolder;
+        window.selectFile = selectFile;
     </script>
 </body>
 </html>`
