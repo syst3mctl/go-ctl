@@ -247,7 +247,9 @@ func initLogger({{if .HasFeature "config"}}config *Config{{else}}config *Logging
 	zerolog.SetGlobalLevel(level)
 
 	// Set log format
-	{{if .HasFeature "config"}}if config.Logging.Format == "console" {{{else}}if config.Format == "console" {{{end}}
+	{{if .HasFeature "config"}}if config.Logging.Format == "console" {
+{{else}}if config.Format == "console" {
+{{end}}
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 }

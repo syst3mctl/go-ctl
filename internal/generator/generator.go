@@ -202,7 +202,7 @@ func (g *Generator) generateProjectStructure(config metadata.ProjectConfig) map[
 	// Base files
 	files["go.mod"] = g.renderTemplate("go.mod", config)
 	files["README.md"] = g.renderTemplate("README.md", config)
-	files["main.go"] = g.renderTemplate("main.go", config)
+	files[fmt.Sprintf("cmd/%s/main.go", config.ProjectName)] = g.renderTemplate("main.go", config)
 
 	// Core structure
 	files["internal/config/config.go"] = g.renderTemplate("config.go", config)
@@ -273,13 +273,12 @@ func (g *Generator) renderTemplate(templateName string, config metadata.ProjectC
 		return fmt.Sprintf("// Template %s not found\npackage main\n\nfunc main() {\n\t// TODO: Implement\n}\n", templateName)
 	}
 
-	// Create enhanced template with updated function map
+	// Create enhanced template with basic function map
 	enhancedFuncMap := template.FuncMap{
-		"title":      strings.Title,
-		"lower":      strings.ToLower,
-		"upper":      strings.ToUpper,
-		"replace":    strings.ReplaceAll,
-		"HasFeature": func(featureID string) bool { return g.hasFeature(config, featureID) },
+		"title":   strings.Title,
+		"lower":   strings.ToLower,
+		"upper":   strings.ToUpper,
+		"replace": strings.ReplaceAll,
 	}
 
 	// Clone template with enhanced function map
@@ -293,28 +292,43 @@ func (g *Generator) renderTemplate(templateName string, config metadata.ProjectC
 		dbDriver = config.Databases[0].Driver
 	}
 
-	// Create template data with template-expected field names
-	data := struct {
-		metadata.ProjectConfig
-		HTTP     metadata.Option
-		Database metadata.Option
-		DbDriver metadata.Option
-	}{
+	// Create a wrapper with HasFeature method
+	dataWithMethods := &TemplateData{
 		ProjectConfig: config,
-		HTTP:          config.HttpPackage, // Map HttpPackage to HTTP for template compatibility
-		Database:      database,           // Map first database for template compatibility
-		DbDriver:      dbDriver,           // Map first database driver for template compatibility
+		HTTP:          config.HttpPackage,
+		Database:      database,
+		DbDriver:      dbDriver,
+		generator:     g,
 	}
 
 	var buf bytes.Buffer
-	if err := enhancedTemplate.Execute(&buf, data); err != nil {
+	if err := enhancedTemplate.Execute(&buf, dataWithMethods); err != nil {
 		return fmt.Sprintf("// Error rendering template %s: %v\npackage main\n\nfunc main() {\n\t// TODO: Fix template\n}\n", templateName, err)
 	}
 
 	return buf.String()
 }
 
-// hasFeature checks if a feature is enabled in the configuration
+// TemplateData wraps ProjectConfig with methods for template usage
+type TemplateData struct {
+	metadata.ProjectConfig
+	HTTP      metadata.Option
+	Database  metadata.Option
+	DbDriver  metadata.Option
+	generator *Generator
+}
+
+// HasFeature checks if a feature is enabled in the configuration
+func (td *TemplateData) HasFeature(featureID string) bool {
+	for _, feature := range td.Features {
+		if feature.ID == featureID {
+			return true
+		}
+	}
+	return false
+}
+
+// hasFeature checks if a feature is enabled in the configuration (legacy method)
 func (g *Generator) hasFeature(config metadata.ProjectConfig, featureID string) bool {
 	for _, feature := range config.Features {
 		if feature.ID == featureID {
