@@ -1,0 +1,173 @@
+{
+  "goVersions": ["1.23", "1.22", "1.21", "1.20"],
+  "http": [
+    {
+      "id": "net-http",
+      "name": "Standard Library (net/http)",
+      "description": "Built-in HTTP server with routing capabilities.",
+      "importPath": ""
+    },
+    {
+      "id": "gin",
+      "name": "Gin",
+      "description": "A high-performance HTTP web framework written in Go.",
+      "importPath": "github.com/gin-gonic/gin"
+    },
+    {
+      "id": "echo",
+      "name": "Echo",
+      "description": "A high-performance, minimalist Go web framework.",
+      "importPath": "github.com/labstack/echo/v4"
+    },
+    {
+      "id": "fiber",
+      "name": "Fiber",
+      "description": "An Express-inspired web framework built on top of Fasthttp.",
+      "importPath": "github.com/gofiber/fiber/v2"
+    },
+    {
+      "id": "chi",
+      "name": "Chi",
+      "description": "A lightweight, idiomatic and composable router for building Go HTTP services.",
+      "importPath": "github.com/go-chi/chi/v5"
+    }
+  ],
+  "databases": [
+    {
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "description": "A powerful, open source object-relational database system.",
+      "importPath": ""
+    },
+    {
+      "id": "mysql",
+      "name": "MySQL",
+      "description": "The world's most popular open source database.",
+      "importPath": ""
+    },
+    {
+      "id": "sqlite",
+      "name": "SQLite",
+      "description": "A C-language library that implements a small, fast, self-contained SQL database engine.",
+      "importPath": ""
+    },
+    {
+      "id": "mongodb",
+      "name": "MongoDB",
+      "description": "A document database with the scalability and flexibility that you want.",
+      "importPath": ""
+    },
+    {
+      "id": "redis",
+      "name": "Redis",
+      "description": "An open source, in-memory data structure store.",
+      "importPath": ""
+    },
+    {
+      "id": "bigquery",
+      "name": "BigQuery",
+      "description": "Google Cloud's fully managed, petabyte scale, low cost analytics data warehouse.",
+      "importPath": ""
+    }
+  ],
+  "dbDrivers": [
+    {
+      "id": "database-sql",
+      "name": "Standard Library (database/sql)",
+      "description": "Built-in SQL driver interface with connection pooling.",
+      "importPath": ""
+    },
+    {
+      "id": "gorm",
+      "name": "GORM",
+      "description": "The fantastic ORM library for Golang, aims to be developer friendly.",
+      "importPath": "gorm.io/gorm"
+    },
+    {
+      "id": "sqlx",
+      "name": "sqlx",
+      "description": "Extensions to database/sql with easier scanning and named parameters.",
+      "importPath": "github.com/jmoiron/sqlx"
+    },
+    {
+      "id": "ent",
+      "name": "Ent",
+      "description": "An entity framework for Go with schema-first code generation.",
+      "importPath": "entgo.io/ent"
+    },
+    {
+      "id": "mongo-driver",
+      "name": "MongoDB Driver",
+      "description": "The MongoDB official Go driver.",
+      "importPath": "go.mongodb.org/mongo-driver"
+    },
+    {
+      "id": "redis-client",
+      "name": "Redis Client",
+      "description": "Redis client for Go with support for Cluster, Sentinel, and Pipeline.",
+      "importPath": "github.com/redis/go-redis/v9"
+    }
+  ],
+  "features": [
+    {
+      "id": "gitignore",
+      "name": ".gitignore",
+      "description": "Add a comprehensive Go .gitignore file.",
+      "importPath": ""
+    },
+    {
+      "id": "makefile",
+      "name": "Makefile",
+      "description": "Add a Makefile with common build, test, and run targets.",
+      "importPath": ""
+    },
+    {
+      "id": "air",
+      "name": "Live Reload (Air)",
+      "description": "Add Air configuration for hot-reloading during development.",
+      "importPath": "github.com/cosmtrek/air"
+    },
+    {
+      "id": "env",
+      "name": ".env.example",
+      "description": "Add a .env.example file with common environment variables.",
+      "importPath": ""
+    },
+    {
+      "id": "docker",
+      "name": "Docker",
+      "description": "Add Dockerfile and docker-compose.yml for containerization.",
+      "importPath": ""
+    },
+    {
+      "id": "cors",
+      "name": "CORS Middleware",
+      "description": "Add Cross-Origin Resource Sharing middleware.",
+      "importPath": "github.com/rs/cors"
+    },
+    {
+      "id": "jwt",
+      "name": "JWT Authentication",
+      "description": "Add JWT token-based authentication middleware.",
+      "importPath": "github.com/golang-jwt/jwt/v5"
+    },
+    {
+      "id": "logging",
+      "name": "Structured Logging",
+      "description": "Add structured logging with zerolog.",
+      "importPath": "github.com/rs/zerolog"
+    },
+    {
+      "id": "config",
+      "name": "Configuration Management",
+      "description": "Add Viper for configuration management.",
+      "importPath": "github.com/spf13/viper"
+    },
+    {
+      "id": "testing",
+      "name": "Testing Setup",
+      "description": "Add testing utilities and test examples.",
+      "importPath": "github.com/stretchr/testify"
+    }
+  ]
+}
