@@ -128,13 +128,13 @@ const indexTemplate = `<!DOCTYPE html>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Header -->
-    <header class="gradient-bg text-white py-6">
+    <header class="bg-[#11A32B] text-white py-6">
         <div class="container mx-auto px-6">
             <h1 class="text-4xl font-bold flex items-center">
                 <i class="fas fa-cube mr-3"></i>
                 go-ctl
             </h1>
-            <p class="text-blue-100 mt-2">Go Project Initializr - Generate production-ready Go projects in seconds</p>
+            <p class="text-blue-100 mt-2">Go Project Initializer - Generate production-ready Go projects in seconds</p>
         </div>
     </header>
 
