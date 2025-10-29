@@ -8,10 +8,11 @@ import (
 
 // Option represents a selectable option with metadata
 type Option struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ImportPath  string `json:"importPath"`
+	ID           string              `json:"id"`
+	Name         string              `json:"name"`
+	Description  string              `json:"description"`
+	ImportPath   string              `json:"importPath"`
+	Dependencies map[string][]string `json:"dependencies,omitempty"`
 }
 
 // ProjectOptions contains all available options for project generation
@@ -105,9 +106,14 @@ func (config ProjectConfig) GetAllImports() []string {
 		imports = append(imports, config.HttpPackage.ImportPath)
 	}
 
-	// Add database driver import
+	// Add database driver import and its dependencies
 	if config.DbDriver.ImportPath != "" {
 		imports = append(imports, config.DbDriver.ImportPath)
+
+		// Add database-specific dependencies
+		if deps, exists := config.DbDriver.Dependencies[config.Database.ID]; exists {
+			imports = append(imports, deps...)
+		}
 	}
 
 	// Add feature imports

@@ -7,7 +7,7 @@ const indexTemplate = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>go-ctl - Go Project Initializr</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
@@ -41,6 +41,72 @@ const indexTemplate = `<!DOCTYPE html>
         .modal-backdrop {
             backdrop-filter: blur(4px);
         }
+
+        /* File Explorer Styles */
+        .tree-item {
+            user-select: none;
+        }
+
+        .tree-item {
+            display: none;
+        }
+
+        .tree-item.show {
+            display: block;
+        }
+
+        .tree-item[data-level="0"] {
+            display: block;
+        }
+
+        .folder-item:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .file-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .file-item.selected {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left: 3px solid #3b82f6;
+        }
+
+        .folder-chevron.expanded {
+            transform: rotate(90deg);
+        }
+
+        .file-tree-container {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .file-content-container {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        /* Scrollbar styles */
+        .file-tree-container::-webkit-scrollbar,
+        .file-content-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .file-tree-container::-webkit-scrollbar-track,
+        .file-content-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .file-tree-container::-webkit-scrollbar-thumb,
+        .file-content-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .file-tree-container::-webkit-scrollbar-thumb:hover,
+        .file-content-container::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
         pre[class*="language-"] {
             background: #2d3748 !important;
             margin: 0 !important;
@@ -73,7 +139,7 @@ const indexTemplate = `<!DOCTYPE html>
     </header>
 
     <div class="container mx-auto px-6 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-1 gap-8">
 
             <!-- Left Side: Configuration Form -->
             <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
@@ -261,26 +327,12 @@ const indexTemplate = `<!DOCTYPE html>
                     </div>
                 </form>
             </div>
-
-            <!-- Right Side: Preview -->
-            <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
-                <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-                    <i class="fas fa-folder-tree mr-2 text-green-600"></i>
-                    Project Preview
-                </h2>
-
-                <div class="text-center py-12 text-gray-500">
-                    <i class="fas fa-folder-open text-4xl mb-4"></i>
-                    <p class="text-lg">Click "Preview Structure" to explore your project</p>
-                    <p class="text-sm mt-2">Browse through the generated files and see their contents in an interactive modal.</p>
-                </div>
-            </div>
         </div>
 
         <!-- Explore Modal -->
         <div id="explore-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden z-50" onclick="closeExploreModal(event)">
             <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="bg-white rounded-lg shadow-2xl w-full max-w-7xl h-[80vh] flex flex-col" onclick="event.stopPropagation()">
+                <div class="bg-white rounded-lg shadow-2xl w-full max-w-7xl h-[85vh] flex flex-col" onclick="event.stopPropagation()">
                     <!-- Modal Header -->
                     <div class="flex items-center justify-between p-6 border-b border-gray-200">
                         <div class="flex items-center">
@@ -296,10 +348,10 @@ const indexTemplate = `<!DOCTYPE html>
                     <div class="flex flex-1 overflow-hidden">
                         <!-- File Tree Sidebar -->
                         <div class="w-1/3 border-r border-gray-200 bg-gray-50">
-                            <div class="p-4 h-full">
+                            <div class="p-4 h-full flex flex-col">
                                 <h3 class="text-lg font-semibold text-gray-700 mb-3 flex items-center">
-                                    <i class="fas fa-sitemap mr-2 text-gray-500"></i>
-                                    File Structure
+                                    <i class="fas fa-folder-tree mr-2 text-blue-600"></i>
+                                    Explorer
                                 </h3>
                                 <!-- Loading indicator -->
                                 <div id="explore-loading" class="htmx-indicator text-center py-8">
@@ -307,23 +359,23 @@ const indexTemplate = `<!DOCTYPE html>
                                     <p class="mt-2 text-gray-600">Generating structure...</p>
                                 </div>
                                 <!-- File tree content -->
-                                <div id="file-tree-content" class="space-y-1 file-tree-container">
+                                <div id="file-tree-content" class="file-tree-container overflow-auto flex-1">
                                     <!-- Files will be loaded here -->
                                 </div>
                             </div>
                         </div>
 
                         <!-- File Content Area -->
-                        <div class="flex-1 flex flex-col">
+                        <div class="flex-1 flex flex-col bg-gray-900">
                             <!-- File Header -->
-                            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                            <div class="p-3 border-b border-gray-700 bg-gray-800">
                                 <div class="flex items-center justify-between">
-                                    <div id="current-file-header" class="flex items-center text-gray-600">
+                                    <div id="current-file-header" class="flex items-center text-gray-300">
                                         <i class="fas fa-file-code mr-2"></i>
-                                        <span>Select a file to preview</span>
+                                        <span class="text-sm">Select a file to preview</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <button onclick="copyFileContent()" id="copy-btn" class="hidden bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition duration-200">
+                                        <button onclick="copyFileContent()" id="copy-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition duration-200">
                                             <i class="fas fa-copy mr-1"></i>Copy
                                         </button>
                                     </div>
@@ -332,12 +384,12 @@ const indexTemplate = `<!DOCTYPE html>
 
                             <!-- File Content -->
                             <div class="flex-1 overflow-hidden">
-                                <div id="file-content" class="h-full file-content-container bg-gray-800">
+                                <div id="file-content" class="h-full file-content-container bg-gray-900 overflow-auto">
                                     <div class="flex items-center justify-center h-full text-gray-400">
                                         <div class="text-center p-8">
-                                            <i class="fas fa-mouse-pointer text-4xl mb-4 text-gray-500"></i>
-                                            <p class="text-lg text-gray-300">Click on a file to view its content</p>
-                                            <p class="text-sm mt-2 text-gray-500">Browse the file tree on the left to explore your generated project</p>
+                                            <i class="fas fa-code text-4xl mb-4 text-gray-600"></i>
+                                            <p class="text-lg text-gray-300 mb-2">Select a file to view its content</p>
+                                            <p class="text-sm text-gray-500">Click on folders to expand and files to preview</p>
                                         </div>
                                     </div>
                                 </div>
@@ -458,6 +510,206 @@ const indexTemplate = `<!DOCTYPE html>
             });
         }
 
+        // Initialize file tree - expand root folders automatically
+        function initializeFileTree() {
+            // Show all root level items (level 0)
+            const rootItems = document.querySelectorAll('.tree-item[data-level="0"]');
+            rootItems.forEach(item => {
+                if (item.dataset.isFolder === 'true') {
+                    const chevron = item.querySelector('.folder-chevron');
+                    if (chevron) {
+                        chevron.classList.add('expanded');
+                        showDirectChildren(item.dataset.path);
+                    }
+                }
+                item.classList.add('show');
+            });
+        }
+
+        // Tree functionality
+        function toggleFolder(folderElement) {
+            const chevron = folderElement.querySelector('.folder-chevron');
+            const isExpanded = chevron.classList.contains('expanded');
+            const folderPath = folderElement.closest('.tree-item').dataset.path;
+
+            chevron.classList.toggle('expanded');
+
+            if (isExpanded) {
+                // Collapse: hide all descendants
+                hideDescendants(folderPath);
+            } else {
+                // Expand: show direct children only
+                showDirectChildren(folderPath);
+            }
+        }
+
+        function showDirectChildren(parentPath) {
+            const allItems = document.querySelectorAll('.tree-item');
+            const parentElement = document.querySelector('[data-path="' + parentPath + '"]');
+            if (!parentElement) return;
+            const parentLevel = parseInt(parentElement.dataset.level);
+
+            allItems.forEach(item => {
+                const itemPath = item.dataset.path;
+                const itemLevel = parseInt(item.dataset.level);
+                const isFolder = item.dataset.isFolder === 'true';
+
+                // Show direct children (one level deeper)
+                if (itemLevel === parentLevel + 1 && itemPath.startsWith(parentPath + '/')) {
+                    if (!isFolder || isDirectChild(parentPath, itemPath)) {
+                        item.classList.add('show');
+                    }
+                }
+            });
+        }
+
+        function hideDescendants(parentPath) {
+            const allItems = document.querySelectorAll('.tree-item');
+            const parentElement = document.querySelector('[data-path="' + parentPath + '"]');
+            if (!parentElement) return;
+            const parentLevel = parseInt(parentElement.dataset.level);
+
+            allItems.forEach(item => {
+                const itemPath = item.dataset.path;
+                const itemLevel = parseInt(item.dataset.level);
+
+                // Hide all descendants (any level deeper)
+                if (itemLevel > parentLevel && itemPath.startsWith(parentPath + '/')) {
+                    item.classList.remove('show');
+                    // Also collapse any expanded folders in descendants
+                    const chevron = item.querySelector('.folder-chevron');
+                    if (chevron) {
+                        chevron.classList.remove('expanded');
+                    }
+                }
+            });
+        }
+
+        function isDirectChild(parentPath, childPath) {
+            if (!childPath.startsWith(parentPath + '/')) return false;
+            const remainingPath = childPath.substring(parentPath.length + 1);
+            return !remainingPath.includes('/');
+        }
+
+        function selectFile(path, name, element) {
+            // Remove previous selection
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+
+            // Add selection to clicked file
+            element.classList.add('selected');
+
+            // Update header
+            const header = document.getElementById('current-file-header');
+            const icon = getFileIcon(name);
+            header.innerHTML = '<i class="' + icon + ' mr-2"></i><span class="font-medium">' + name + '</span>';
+
+            // Show copy button
+            document.getElementById('copy-btn').classList.remove('hidden');
+
+            // Load file content
+            loadFileContent(path, name);
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            switch(ext) {
+                case 'go': return 'fab fa-golang text-blue-500';
+                case 'md': return 'fab fa-markdown text-blue-600';
+                case 'json': return 'fas fa-code text-yellow-600';
+                case 'yml':
+                case 'yaml': return 'fas fa-code text-red-600';
+                case 'toml': return 'fas fa-code text-purple-600';
+                case 'mod': return 'fas fa-cube text-green-500';
+                default: return 'fas fa-file-code text-gray-500';
+            }
+        }
+
+        // Load file content function
+        function loadFileContent(path, name) {
+            const contentDiv = document.getElementById('file-content');
+
+            // Show loading state
+            contentDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400">' +
+                '<div class="text-center">' +
+                '<i class="fas fa-spinner fa-spin text-2xl mb-4 text-blue-400"></i>' +
+                '<p class="text-gray-300">Loading ' + name + '...</p>' +
+                '</div>' +
+                '</div>';
+
+
+
+            // Get project configuration from form
+            const form = document.getElementById('project-form');
+            const formData = new FormData(form);
+
+            // Build URL with project configuration parameters
+            const params = new URLSearchParams();
+            params.append('path', path);
+            params.append('projectName', formData.get('projectName') || 'my-go-app');
+            params.append('goVersion', formData.get('goVersion') || '1.23');
+            params.append('httpPackage', formData.get('httpPackage') || 'gin');
+            params.append('database', formData.get('database') || 'postgres');
+            params.append('dbDriver', formData.get('dbDriver') || 'gorm');
+
+            // Fetch file content with configuration
+            fetch('/file-content?' + params.toString())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                    }
+                    return response.text();
+                })
+                .then(content => {
+                    const language = getLanguageFromPath(path);
+                    const escapedContent = escapeHtml(content);
+
+                    contentDiv.innerHTML = '<div class="h-full overflow-auto">' +
+                        '<div class="text-xs text-gray-400 px-4 py-2 border-b border-gray-700 font-mono">' + path + '</div>' +
+                        '<pre class="m-0 bg-gray-900 p-4" style="font-size: 13px; line-height: 1.5; min-height: calc(100% - 32px);">' +
+                        '<code class="language-' + language + '" style="color: #e2e8f0;">' + escapedContent + '</code></pre>' +
+                        '</div>';
+
+                    // Apply syntax highlighting if Prism is available
+                    if (typeof Prism !== 'undefined') {
+                        Prism.highlightAll();
+                    }
+                })
+                .catch(error => {
+                    contentDiv.innerHTML = '<div class="flex items-center justify-center h-full text-red-400">' +
+                        '<div class="text-center p-8">' +
+                        '<i class="fas fa-exclamation-triangle text-3xl mb-4"></i>' +
+                        '<p class="text-lg mb-2">Error loading file</p>' +
+                        '<p class="text-sm text-gray-500">' + error.message + '</p>' +
+                        '</div>' +
+                        '</div>';
+                });
+        }
+
+        function getLanguageFromPath(path) {
+            const ext = path.split('.').pop().toLowerCase();
+            switch(ext) {
+                case 'go': return 'go';
+                case 'js': return 'javascript';
+                case 'json': return 'json';
+                case 'yaml':
+                case 'yml': return 'yaml';
+                case 'toml': return 'toml';
+                case 'md': return 'markdown';
+                case 'html': return 'html';
+                case 'css': return 'css';
+                case 'sql': return 'sql';
+                default: return 'text';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Download project from modal
         function downloadProject() {
             const form = document.getElementById('project-form');
@@ -465,6 +717,37 @@ const indexTemplate = `<!DOCTYPE html>
             closeExploreModal();
         }
 
+        // Copy file content to clipboard
+        function copyFileContent() {
+            const codeElement = document.querySelector('#file-content code');
+            if (codeElement) {
+                const text = codeElement.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = document.getElementById('copy-btn');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+                    btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    btn.classList.add('bg-green-500');
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('bg-green-500');
+                        btn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            }
+        }
+
+        // Initialize tree when content is loaded via HTMX
+        document.addEventListener('htmx:afterSettle', function(event) {
+            if (event.detail.target.id === 'file-tree-content') {
+                initializeFileTree();
+            }
+        });
+
+        // Package search functionality
         // Remove placeholder text when packages are selected
         document.addEventListener('htmx:afterRequest', function(event) {
             const selectedPackages = document.getElementById('selected-packages');
@@ -501,21 +784,28 @@ const indexTemplate = `<!DOCTYPE html>
 
 const exploreTemplate = `
 {{range .Files}}
-<div class="file-item border border-gray-200 rounded p-2 cursor-pointer hover:bg-gray-100 transition duration-150 mb-1"
-     onclick="selectFile('{{.Path}}', '{{.Name}}', this)">
-    <div class="flex items-center">
+<div class="tree-item" data-level="{{.Level}}" data-path="{{.Path}}" data-is-folder="{{.IsFolder}}">
+    {{if .IsFolder}}
+    <div class="folder-item flex items-center py-1 px-2 cursor-pointer hover:bg-blue-50 rounded transition duration-150"
+         onclick="toggleFolder(this)" style="padding-left: {{mul .Level 20}}px;">
+        <i class="fas fa-chevron-right folder-chevron text-gray-400 text-xs mr-2 transition-transform duration-200"></i>
         <i class="{{.Icon}} mr-2"></i>
         <span class="text-sm font-medium text-gray-700">{{.Name}}</span>
     </div>
-    <div class="text-xs text-gray-500 ml-6 mt-1">{{.Path}}</div>
+    {{else}}
+    <div class="file-item flex items-center py-1 px-2 cursor-pointer hover:bg-gray-100 rounded transition duration-150"
+         onclick="selectFile('{{.Path}}', '{{.Name}}', this)" style="padding-left: {{add (mul .Level 20) 20}}px;">
+        <i class="{{.Icon}} mr-2 text-sm"></i>
+        <span class="text-sm text-gray-700">{{.Name}}</span>
+    </div>
+    {{end}}
 </div>
 {{end}}
 
 {{if not .Files}}
 <div class="text-center py-8 text-gray-500">
-    <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-    <p>No files generated</p>
-    <p class="text-xs mt-1">Please check your configuration</p>
+    <i class="fas fa-folder-open text-3xl mb-4"></i>
+    <p>No files to preview</p>
 </div>
 {{end}}
 `

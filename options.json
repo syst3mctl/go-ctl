@@ -75,37 +75,67 @@
       "id": "database-sql",
       "name": "Standard Library (database/sql)",
       "description": "Built-in SQL driver interface with connection pooling.",
-      "importPath": ""
+      "importPath": "database/sql",
+      "dependencies": {
+        "postgres": ["github.com/lib/pq"],
+        "mysql": ["github.com/go-sql-driver/mysql"],
+        "sqlite": ["github.com/mattn/go-sqlite3"]
+      }
     },
     {
       "id": "gorm",
       "name": "GORM",
       "description": "The fantastic ORM library for Golang, aims to be developer friendly.",
-      "importPath": "gorm.io/gorm"
+      "importPath": "gorm.io/gorm",
+      "dependencies": {
+        "postgres": ["gorm.io/driver/postgres"],
+        "mysql": ["gorm.io/driver/mysql"],
+        "sqlite": ["gorm.io/driver/sqlite"]
+      }
     },
     {
       "id": "sqlx",
       "name": "sqlx",
       "description": "Extensions to database/sql with easier scanning and named parameters.",
-      "importPath": "github.com/jmoiron/sqlx"
+      "importPath": "github.com/jmoiron/sqlx",
+      "dependencies": {
+        "postgres": ["github.com/lib/pq"],
+        "mysql": ["github.com/go-sql-driver/mysql"],
+        "sqlite": ["github.com/mattn/go-sqlite3"]
+      }
     },
     {
       "id": "ent",
       "name": "Ent",
       "description": "An entity framework for Go with schema-first code generation.",
-      "importPath": "entgo.io/ent"
+      "importPath": "entgo.io/ent",
+      "dependencies": {
+        "postgres": ["entgo.io/ent/dialect/sql", "github.com/lib/pq"],
+        "mysql": ["entgo.io/ent/dialect/sql", "github.com/go-sql-driver/mysql"],
+        "sqlite": ["entgo.io/ent/dialect/sql", "github.com/mattn/go-sqlite3"]
+      }
     },
     {
       "id": "mongo-driver",
       "name": "MongoDB Driver",
       "description": "The MongoDB official Go driver.",
-      "importPath": "go.mongodb.org/mongo-driver"
+      "importPath": "go.mongodb.org/mongo-driver/mongo",
+      "dependencies": {
+        "mongodb": [
+          "go.mongodb.org/mongo-driver/mongo",
+          "go.mongodb.org/mongo-driver/bson",
+          "go.mongodb.org/mongo-driver/mongo/options"
+        ]
+      }
     },
     {
       "id": "redis-client",
       "name": "Redis Client",
       "description": "Redis client for Go with support for Cluster, Sentinel, and Pipeline.",
-      "importPath": "github.com/redis/go-redis/v9"
+      "importPath": "github.com/redis/go-redis/v9",
+      "dependencies": {
+        "redis": ["github.com/redis/go-redis/v9"]
+      }
     }
   ],
   "features": [
