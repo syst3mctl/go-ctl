@@ -1,0 +1,10 @@
+🚀 go-ctl server starting on http://localhost:8080
+📋 Available endpoints:
+   GET  /              - Main project generator interface
+   POST /generate        - Generate and download project ZIP
+   POST /explore         - Preview project structure
+   GET  /search-packages - Search pkg.go.dev for packages (legacy)
+   GET  /fetch-packages  - Dynamic package search API (supports JSON & HTML)
+   POST /add-package     - Add package to selection
+   GET  /file-content    - Get individual file content for preview
+2025/10/29 21:43:30 Server failed to start:listen tcp :8080: bind: address already in use

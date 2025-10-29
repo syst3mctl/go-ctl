@@ -98,6 +98,77 @@ func (g *Generator) LoadTemplates() error {
 	return nil
 }
 
+// GenerateFileContent generates content for a single file based on the configuration
+func (g *Generator) GenerateFileContent(filePath string, config metadata.ProjectConfig) (string, error) {
+	// Load templates if not already loaded
+	if len(g.templates) == 0 {
+		if err := g.LoadTemplates(); err != nil {
+			return "", fmt.Errorf("failed to load templates: %w", err)
+		}
+	}
+
+	// Generate the complete project structure to get file content
+	projectStructure := g.generateProjectStructure(config)
+
+	// Look for the file in the generated structure
+	if content, exists := projectStructure[filePath]; exists {
+		return content, nil
+	}
+
+	// If exact path not found, try to match by filename or pattern
+	for path, content := range projectStructure {
+		if strings.HasSuffix(path, filepath.Base(filePath)) {
+			return content, nil
+		}
+	}
+
+	// If still not found, try to generate specific content based on file path patterns
+	if content := g.generateSpecificFileContent(filePath, config); content != "" {
+		return content, nil
+	}
+
+	return "", fmt.Errorf("file not found in project structure: %s", filePath)
+}
+
+// generateSpecificFileContent generates content for specific file patterns
+func (g *Generator) generateSpecificFileContent(filePath string, config metadata.ProjectConfig) string {
+	switch {
+	case strings.Contains(filePath, "storage/") && strings.HasSuffix(filePath, ".go"):
+		// Generate database-specific storage content
+		for _, db := range config.Databases {
+			if strings.Contains(filePath, db.Database.ID) {
+				templateName := g.getRepositoryTemplate(db.Database.ID)
+				return g.renderTemplate(templateName, config)
+			}
+		}
+		// Default storage content
+		return g.renderTemplate("storage.db.go", config)
+
+	case strings.Contains(filePath, "handler/") && strings.HasSuffix(filePath, ".go"):
+		if strings.Contains(filePath, "http") {
+			return g.renderTemplate("handler.http.go", config)
+		}
+		return g.renderTemplate("handler.handler.go", config)
+
+	case strings.Contains(filePath, "service/") && strings.HasSuffix(filePath, ".go"):
+		if strings.Contains(filePath, "test") {
+			return g.renderTemplate("service_test.go", config)
+		}
+		return g.renderTemplate("service.service.go", config)
+
+	case strings.Contains(filePath, "domain/") && strings.HasSuffix(filePath, ".go"):
+		return g.renderTemplate("domain.model.go", config)
+
+	case strings.Contains(filePath, "config/") && strings.HasSuffix(filePath, ".go"):
+		return g.renderTemplate("config.go", config)
+
+	case strings.Contains(filePath, "testing/") && strings.HasSuffix(filePath, ".go"):
+		return g.renderTemplate("testing.go", config)
+	}
+
+	return ""
+}
+
 // GenerateProjectZip generates a project ZIP file based on the configuration
 func (g *Generator) GenerateProjectZip(config metadata.ProjectConfig, w io.Writer) error {
 	// Create a new ZIP archive
@@ -215,13 +286,24 @@ func (g *Generator) renderTemplate(templateName string, config metadata.ProjectC
 	enhancedTemplate := template.Must(tmpl.Clone())
 	enhancedTemplate.Funcs(enhancedFuncMap)
 
+	// Get primary database and driver for template compatibility
+	var database, dbDriver metadata.Option
+	if len(config.Databases) > 0 {
+		database = config.Databases[0].Database
+		dbDriver = config.Databases[0].Driver
+	}
+
 	// Create template data with template-expected field names
 	data := struct {
 		metadata.ProjectConfig
-		HTTP metadata.Option
+		HTTP     metadata.Option
+		Database metadata.Option
+		DbDriver metadata.Option
 	}{
 		ProjectConfig: config,
 		HTTP:          config.HttpPackage, // Map HttpPackage to HTTP for template compatibility
+		Database:      database,           // Map first database for template compatibility
+		DbDriver:      dbDriver,           // Map first database driver for template compatibility
 	}
 
 	var buf bytes.Buffer

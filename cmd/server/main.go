@@ -35,7 +35,8 @@ func main() {
 	http.HandleFunc("/", handleIndex)
 	http.HandleFunc("/generate", handleGenerate)
 	http.HandleFunc("/explore", handleExplore)
-	http.HandleFunc("/search-packages", handleSearchPackages)
+	http.HandleFunc("/search-packages", handleSearchPackages) // Legacy endpoint
+	http.HandleFunc("/fetch-packages", handleFetchPackages)   // New dynamic endpoint
 	http.HandleFunc("/add-package", handleAddPackage)
 	http.HandleFunc("/file-content", handleFileContent)
 
@@ -52,11 +53,12 @@ func main() {
 	fmt.Printf("🚀 go-ctl server starting on http://localhost:%s\n", port)
 	fmt.Println("📋 Available endpoints:")
 	fmt.Println("   GET  /              - Main project generator interface")
-	fmt.Println("   POST /generate      - Generate and download project ZIP")
-	fmt.Println("   POST /explore       - Preview project structure")
-	fmt.Println("   GET  /search-packages - Search pkg.go.dev for packages")
-	fmt.Println("   POST /add-package   - Add package to selection")
-	fmt.Println("   GET  /file-content  - Get individual file content for preview")
+	fmt.Println("   POST /generate        - Generate and download project ZIP")
+	fmt.Println("   POST /explore         - Preview project structure")
+	fmt.Println("   GET  /search-packages - Search pkg.go.dev for packages (legacy)")
+	fmt.Println("   GET  /fetch-packages  - Dynamic package search API (supports JSON & HTML)")
+	fmt.Println("   POST /add-package     - Add package to selection")
+	fmt.Println("   GET  /file-content    - Get individual file content for preview")
 
 	// Create server
 	srv := &http.Server{

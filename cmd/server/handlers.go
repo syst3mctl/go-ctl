@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/syst3mctl/go-ctl/internal/metadata"
 )
 
@@ -45,6 +46,12 @@ type ProjectStructureData struct {
 type PkgGoDevResult struct {
 	Path     string `json:"path"`
 	Synopsis string `json:"synopsis"`
+}
+
+type PackageResult struct {
+	Path     string `json:"path"`
+	Synopsis string `json:"synopsis"`
+	Version  string `json:"version"`
 }
 
 // Package search cache
@@ -214,42 +221,282 @@ func handleExplore(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleSearchPackages searches pkg.go.dev for packages
+// handleSearchPackages searches pkg.go.dev for packages (legacy endpoint)
 func handleSearchPackages(w http.ResponseWriter, r *http.Request) {
+	// Redirect to the new fetch-packages endpoint for backward compatibility
+	query := r.URL.Query().Get("q")
+
+	// Forward the request to the new handler
+	r.URL.Path = "/fetch-packages"
+	r.URL.RawQuery = "q=" + query + "&format=html"
+	handleFetchPackages(w, r)
+}
+
+// PackageFetchOptions defines configuration for package fetching
+type PackageFetchOptions struct {
+	Query    string `json:"query"`
+	Provider string `json:"provider"`
+	Limit    int    `json:"limit"`
+	Format   string `json:"format"`
+	Cache    bool   `json:"cache"`
+}
+
+// PackageFetchResponse represents the API response structure
+type PackageFetchResponse struct {
+	Success   bool             `json:"success"`
+	Query     string           `json:"query"`
+	Provider  string           `json:"provider"`
+	Count     int              `json:"count"`
+	Results   []PkgGoDevResult `json:"results"`
+	Error     string           `json:"error,omitempty"`
+	CacheHit  bool             `json:"cache_hit"`
+	Timestamp int64            `json:"timestamp"`
+}
+
+// handleFetchPackages provides a dynamic package search API
+func handleFetchPackages(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	query := r.URL.Query().Get("q")
-	if query == "" {
-		w.Write([]byte("")) // Return empty response for empty query
+	// Parse query parameters
+	options := PackageFetchOptions{
+		Query:    strings.TrimSpace(r.URL.Query().Get("q")),
+		Provider: r.URL.Query().Get("provider"),
+		Format:   strings.ToLower(r.URL.Query().Get("format")),
+		Cache:    r.URL.Query().Get("cache") != "false", // Default to true
+		Limit:    15,                                    // Default limit
+	}
+
+	// Set defaults
+	if options.Provider == "" {
+		options.Provider = "pkg.go.dev"
+	}
+	if options.Format == "" {
+		options.Format = "html" // Default to HTML for HTMX compatibility
+	}
+
+	// Parse limit parameter
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 && limit <= 100 {
+			options.Limit = limit
+		}
+	}
+
+	// Handle empty query
+	if options.Query == "" {
+		if options.Format == "json" {
+			respondWithJSON(w, PackageFetchResponse{
+				Success:   true,
+				Query:     "",
+				Provider:  options.Provider,
+				Count:     0,
+				Results:   []PkgGoDevResult{},
+				Timestamp: time.Now().Unix(),
+			})
+		} else {
+			w.Write([]byte("")) // Empty HTML response for HTMX
+		}
 		return
 	}
 
-	// Search pkg.go.dev (simplified implementation)
-	results, err := searchPackages(query)
+	// Fetch packages based on provider
+	var results []PkgGoDevResult
+	var err error
+	var cacheHit bool
+
+	// Check cache before making the call
+	if options.Cache {
+		cacheHit = checkCacheHit(options.Query)
+	}
+
+	switch options.Provider {
+	case "pkg.go.dev", "":
+		results, err = fetchPackagesFromPkgGoDev(options.Query, options.Limit, options.Cache)
+	case "fallback":
+		results, err = searchPackagesFallback(options.Query)
+	default:
+		err = fmt.Errorf("unsupported provider: %s", options.Provider)
+	}
+
 	if err != nil {
-		http.Error(w, "Failed to search packages", http.StatusInternalServerError)
+		if options.Format == "json" {
+			respondWithJSON(w, PackageFetchResponse{
+				Success:   false,
+				Query:     options.Query,
+				Provider:  options.Provider,
+				Count:     0,
+				Results:   []PkgGoDevResult{},
+				Error:     err.Error(),
+				Timestamp: time.Now().Unix(),
+			})
+		} else {
+			http.Error(w, "Failed to fetch packages", http.StatusInternalServerError)
+		}
 		return
 	}
 
-	// Render search results template
-	tmpl := template.Must(template.New("search-results").Parse(searchResultsTemplate))
+	// Respond based on format
+	if options.Format == "json" {
+		respondWithJSON(w, PackageFetchResponse{
+			Success:   true,
+			Query:     options.Query,
+			Provider:  options.Provider,
+			Count:     len(results),
+			Results:   results,
+			CacheHit:  cacheHit,
+			Timestamp: time.Now().Unix(),
+		})
+	} else {
+		// Render HTML template for HTMX compatibility
+		tmpl := template.Must(template.New("search-results").Parse(searchResultsTemplate))
 
-	data := struct {
-		Results []PkgGoDevResult
-		Query   string
-	}{
-		Results: results,
-		Query:   query,
+		data := struct {
+			Results []PkgGoDevResult
+			Query   string
+		}{
+			Results: results,
+			Query:   options.Query,
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		if err := tmpl.Execute(w, data); err != nil {
+			http.Error(w, "Failed to render search results", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+// respondWithJSON sends a JSON response
+func respondWithJSON(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
+	}
+}
+
+// checkCacheHit checks if the query was served from cache
+func checkCacheHit(query string) bool {
+	_, found := searchCache.get(query)
+	return found
+}
+
+// fetchPackagesFromPkgGoDev fetches packages from pkg.go.dev using HTML scraping
+func fetchPackagesFromPkgGoDev(query string, limit int, useCache bool) ([]PkgGoDevResult, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return []PkgGoDevResult{}, nil
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, "Failed to render search results", http.StatusInternalServerError)
-		return
+	// Check cache first if enabled
+	if useCache {
+		if cached, found := searchCache.get(query); found {
+			// Apply limit to cached results
+			if len(cached) > limit {
+				return cached[:limit], nil
+			}
+			return cached, nil
+		}
 	}
+
+	// Build the search URL
+	url := fmt.Sprintf("https://pkg.go.dev/search?q=%s", strings.ReplaceAll(query, " ", "+"))
+
+	// 1. Fetch the HTML page
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error fetching URL: %v, using fallback", err)
+		return searchPackagesFallback(query)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Error: got status code %d, using fallback", resp.StatusCode)
+		return searchPackagesFallback(query)
+	}
+
+	// 2. Parse the HTML document
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		log.Printf("Error parsing HTML: %v, using fallback", err)
+		return searchPackagesFallback(query)
+	}
+
+	var results []PackageResult
+
+	// 3. Find the items using the *new* CSS selectors
+	doc.Find("div.SearchSnippet").Each(func(i int, s *goquery.Selection) {
+
+		// --- UPDATED CODE ---
+
+		// 1. Get the Package Path
+		// Finds the span with class "SearchSnippet-header-path"
+		pathText := s.Find("a[data-test-id='snippet-title'] .SearchSnippet-header-path").Text()
+		// Trims the parentheses, e.g., "(github.com/gin-gonic/gin)" -> "github.com/gin-gonic/gin"
+		path := strings.Trim(pathText, "()")
+
+		// 2. Get the Synopsis (Selector from your comment)
+		// This finds the synopsis text directly
+		synopsis := s.Find(".SearchSnippet-synopsis").Text()
+
+		// 3. Get the Version
+		// This finds the "published on" span, goes to its parent, and finds the *first* <strong> tag
+		version := s.Find("span[data-test-id='snippet-published']").Parent().Find("strong").First().Text()
+
+		// --- END UPDATED CODE ---
+
+		results = append(results, PackageResult{
+			Path:     strings.TrimSpace(path),
+			Synopsis: strings.TrimSpace(synopsis),
+			Version:  strings.TrimSpace(version),
+		})
+	})
+
+	// Convert PackageResult to PkgGoDevResult and apply limit
+	var pkgResults []PkgGoDevResult
+	for i, result := range results {
+		if i >= limit {
+			break
+		}
+		if result.Path != "" { // Only include results with valid paths
+			pkgResults = append(pkgResults, PkgGoDevResult{
+				Path:     result.Path,
+				Synopsis: result.Synopsis,
+			})
+		}
+	}
+
+	// If no results from scraping, try fallback
+	if len(pkgResults) == 0 {
+		fallbackResults, err := searchPackagesFallback(query)
+		if err != nil {
+			return nil, err
+		}
+		// Apply limit to fallback results
+		if len(fallbackResults) > limit {
+			fallbackResults = fallbackResults[:limit]
+		}
+		// Cache fallback results if caching is enabled
+		if useCache {
+			searchCache.set(query, fallbackResults)
+		}
+		return fallbackResults, nil
+	}
+
+	// Cache successful results if caching is enabled
+	if useCache {
+		searchCache.set(query, pkgResults)
+	}
+	return pkgResults, nil
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // handleAddPackage adds a package to the selected packages list
@@ -292,7 +539,7 @@ func handleAddPackage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleFileContent serves individual file content for the modal
+// handleFileContent serves individual file content for the modal using actual templates
 func handleFileContent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -343,8 +590,12 @@ func handleFileContent(w http.ResponseWriter, r *http.Request) {
 		CustomPackages: []string{},          // Custom packages can be added later if needed
 	}
 
-	// Generate content based on the file path and configuration
-	content := generateFileContentWithConfig(filePath, config)
+	// Generate content using actual template system
+	content, err := gen.GenerateFileContent(filePath, config)
+	if err != nil {
+		// Fall back to default content if template generation fails
+		content = generateFileContentWithConfig(filePath, config)
+	}
 
 	// Return raw content for JavaScript to handle
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -389,102 +640,9 @@ func (c *packageSearchCache) set(query string, results []PkgGoDevResult) {
 }
 
 // searchPackages performs package search with caching and fallback
+// searchPackages is a legacy function that calls the new dynamic API
 func searchPackages(query string) ([]PkgGoDevResult, error) {
-	query = strings.TrimSpace(query)
-	if query == "" {
-		return []PkgGoDevResult{}, nil
-	}
-
-	// Check cache first
-	if cached, found := searchCache.get(query); found {
-		return cached, nil
-	}
-
-	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	// Build request URL
-	baseURL := "https://pkg.go.dev/search"
-	req, err := http.NewRequest("GET", baseURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Add query parameters
-	q := req.URL.Query()
-	q.Add("q", query)
-	q.Add("m", "json")
-	q.Add("limit", "20")
-	req.URL.RawQuery = q.Encode()
-
-	// Set headers
-	req.Header.Set("User-Agent", "go-ctl-initializer/1.0")
-	req.Header.Set("Accept", "application/json")
-
-	// Make the request
-	resp, err := client.Do(req)
-	if err != nil {
-		// Fallback to mock results on network error
-		log.Printf("Failed to search pkg.go.dev: %v, using fallback", err)
-		return searchPackagesFallback(query)
-	}
-	defer resp.Body.Close()
-
-	// Check status code
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("pkg.go.dev returned status %d, using fallback", resp.StatusCode)
-		return searchPackagesFallback(query)
-	}
-
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Failed to read response body: %v, using fallback", err)
-		return searchPackagesFallback(query)
-	}
-
-	// Parse JSON response
-	var apiResponse struct {
-		Results []struct {
-			Path     string `json:"Path"`
-			Synopsis string `json:"Synopsis"`
-			Version  string `json:"Version"`
-		} `json:"Results"`
-	}
-
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		log.Printf("Failed to parse JSON response: %v, using fallback", err)
-		return searchPackagesFallback(query)
-	}
-
-	// Convert to our result format
-	var results []PkgGoDevResult
-	for _, result := range apiResponse.Results {
-		if len(results) >= 15 { // Limit results
-			break
-		}
-		results = append(results, PkgGoDevResult{
-			Path:     result.Path,
-			Synopsis: result.Synopsis,
-		})
-	}
-
-	// If no results from API, try fallback
-	if len(results) == 0 {
-		results, err := searchPackagesFallback(query)
-		if err != nil {
-			return nil, err
-		}
-		// Cache fallback results too
-		searchCache.set(query, results)
-		return results, nil
-	}
-
-	// Cache successful results
-	searchCache.set(query, results)
-	return results, nil
+	return fetchPackagesFromPkgGoDev(query, 15, true)
 }
 
 // searchPackagesFallback provides fallback search results when pkg.go.dev is unavailable

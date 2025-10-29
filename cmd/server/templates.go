@@ -267,7 +267,7 @@ const indexTemplate = `<!DOCTYPE html>
                                name="q"
                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
                                placeholder="Search pkg.go.dev for packages..."
-                               hx-get="/search-packages"
+                               hx-get="/fetch-packages"
                                hx-trigger="keyup changed delay:500ms"
                                hx-target="#search-results"
                                hx-swap="innerHTML"
@@ -340,10 +340,7 @@ const indexTemplate = `<!DOCTYPE html>
                                     Explorer
                                 </h3>
                                 <!-- Loading indicator -->
-                                <div id="explore-loading" class="htmx-indicator text-center py-8">
-                                    <i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-                                    <p class="mt-2 text-gray-600">Generating structure...</p>
-                                </div>
+
                                 <!-- File tree content -->
                                 <div id="file-tree-content" class="file-tree-container overflow-auto flex-1">
                                     <!-- Files will be loaded here -->
