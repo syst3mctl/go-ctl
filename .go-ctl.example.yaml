@@ -1,0 +1,173 @@
+# go-ctl Configuration Example
+# This file shows all available configuration options for the go-ctl CLI tool.
+# Copy this to .go-ctl.yaml in your project or home directory and customize as needed.
+
+# Project configuration - defines default settings for new projects
+project:
+  # Default project settings (leave empty to prompt each time)
+  projectname: ""           # Default project name (if empty, will use command arg)
+  goversion: "1.23"        # Default Go version
+
+  # HTTP framework configuration
+  httppackage:
+    id: "gin"
+    name: "Gin"
+    description: "High-performance HTTP web framework"
+    importpath: "github.com/gin-gonic/gin"
+    dependencies: {}
+
+  # Default databases and drivers
+  databases:
+    - database:
+        id: "postgres"
+        name: "PostgreSQL"
+        description: "PostgreSQL database"
+        importpath: ""
+      driver:
+        id: "gorm"
+        name: "GORM"
+        description: "The fantastic ORM library for Golang"
+        importpath: "gorm.io/gorm"
+        dependencies:
+          postgres: ["gorm.io/driver/postgres"]
+
+  # Default features to include in new projects
+  features:
+    - id: "gitignore"
+      name: ".gitignore"
+      description: "Git ignore file"
+    - id: "makefile"
+      name: "Makefile"
+      description: "Build automation"
+    - id: "env"
+      name: "Environment Variables"
+      description: "Environment configuration"
+    - id: "docker"
+      name: "Docker"
+      description: "Docker containerization"
+
+  # Default custom packages to include
+  custompackages:
+    - "github.com/google/uuid"
+    - "github.com/stretchr/testify/assert"
+
+# CLI-specific settings
+cli:
+  # Default output directory for generated projects
+  default_output: "./projects"
+
+  # Enable interactive mode by default
+  interactive_mode: false
+
+  # Enable colored output
+  color_output: true
+
+  # Automatically check for updates
+  auto_update: false
+
+  # Custom template directory (optional)
+  template_directory: ""
+
+  # Default verbosity level
+  verbosity: "info"  # debug, info, warn, error
+
+  # Shell completion settings
+  completion:
+    enabled: true
+    auto_install: false  # Automatically install completions
+    shells: ["bash", "zsh", "fish", "powershell"]
+
+# Template-specific overrides
+templates:
+  # Override settings for specific built-in templates
+  api:
+    features:
+      - id: "cors"
+        name: "CORS"
+        description: "Cross-Origin Resource Sharing"
+      - id: "jwt"
+        name: "JWT Authentication"
+        description: "JSON Web Token authentication"
+      - id: "logging"
+        name: "Structured Logging"
+        description: "Zerolog integration"
+    custompackages:
+      - "github.com/golang-jwt/jwt/v5"
+      - "github.com/rs/zerolog"
+
+  microservice:
+    features:
+      - id: "air"
+        name: "Air"
+        description: "Hot reload for development"
+      - id: "testing"
+        name: "Testing Setup"
+        description: "Testify framework integration"
+
+# Advanced settings
+advanced:
+  # Custom generator settings
+  generator:
+    # Custom template paths
+    template_paths:
+      - "./custom-templates"
+      - "$HOME/.go-ctl/templates"
+
+    # File generation settings
+    file_permissions: 0644
+    dir_permissions: 0755
+
+    # Backup settings
+    backup_existing: true
+    backup_suffix: ".bak"
+
+  # Network settings for package discovery
+  network:
+    timeout: 30s
+    retry_attempts: 3
+    proxy: ""  # HTTP proxy for package searches
+
+  # Experimental features
+  experimental:
+    # Enable experimental template features
+    advanced_templates: false
+
+    # Enable plugin support
+    plugins: false
+
+    # Enable remote template repositories
+    remote_templates: false
+
+# Examples of different project configurations
+examples:
+  # Minimal web API
+  minimal_api:
+    goversion: "1.23"
+    httppackage:
+      id: "gin"
+    features: ["gitignore", "makefile"]
+
+  # Full-featured microservice
+  microservice:
+    goversion: "1.23"
+    httppackage:
+      id: "gin"
+    databases:
+      - database: {id: "postgres"}
+        driver: {id: "gorm"}
+      - database: {id: "redis"}
+        driver: {id: "redis-client"}
+    features: ["docker", "makefile", "env", "air", "jwt", "cors", "logging", "testing"]
+    custompackages:
+      - "github.com/golang-jwt/jwt/v5"
+      - "github.com/rs/zerolog"
+      - "go.opentelemetry.io/otel"
+
+  # CLI application
+  cli_app:
+    goversion: "1.23"
+    features: ["gitignore", "makefile", "testing"]
+    custompackages:
+      - "github.com/spf13/cobra"
+      - "github.com/spf13/viper"
+      - "github.com/fatih/color"

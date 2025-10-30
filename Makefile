@@ -1,6 +1,9 @@
 # Go Project Makefile for go-ctl-initializer
 BINARY_NAME=go-ctl
-MAIN_PATH=cmd/server
+SERVER_BINARY_NAME=go-ctl-server
+CLI_BINARY_NAME=go-ctl
+SERVER_MAIN_PATH=cmd/server
+CLI_MAIN_PATH=cmd/cli
 BUILD_DIR=bin
 DOCKER_IMAGE=go-ctl:latest
 
@@ -17,25 +20,39 @@ GOFMT=$(GOCMD) fmt
 LDFLAGS=-ldflags="-w -s"
 BUILD_FLAGS=-trimpath
 
-.PHONY: all build clean test coverage deps fmt vet lint run dev docker-build docker-run help
+.PHONY: all build build-server build-cli clean test coverage deps fmt vet lint run run-server run-cli dev docker-build docker-run help
 
 # Default target
-all: clean deps fmt vet test build
+all: clean deps fmt vet test build-server build-cli
 
-# Build the application
-build:
-	@echo "Building $(BINARY_NAME)..."
+# Build both applications
+build: build-server build-cli
+
+# Build the web server
+build-server:
+	@echo "Building $(SERVER_BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)/main.go $(MAIN_PATH)/handlers.go $(MAIN_PATH)/templates.go
+	$(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(SERVER_BINARY_NAME) $(SERVER_MAIN_PATH)/main.go $(SERVER_MAIN_PATH)/handlers.go $(SERVER_MAIN_PATH)/templates.go
+
+# Build the CLI application
+build-cli:
+	@echo "Building $(CLI_BINARY_NAME)..."
+	@mkdir -p $(BUILD_DIR)
+	$(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(CLI_BINARY_NAME) $(CLI_MAIN_PATH)/main.go
 
 # Build for multiple platforms
 build-all: clean
-	@echo "Building for multiple platforms..."
+	@echo "Building server for multiple platforms..."
 	@mkdir -p $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 $(MAIN_PATH)/main.go $(MAIN_PATH)/handlers.go $(MAIN_PATH)/templates.go
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 $(MAIN_PATH)/main.go $(MAIN_PATH)/handlers.go $(MAIN_PATH)/templates.go
-	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 $(MAIN_PATH)/main.go $(MAIN_PATH)/handlers.go $(MAIN_PATH)/templates.go
-	GOOS=windows GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(MAIN_PATH)/main.go $(MAIN_PATH)/handlers.go $(MAIN_PATH)/templates.go
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(SERVER_BINARY_NAME)-linux-amd64 $(SERVER_MAIN_PATH)/main.go $(SERVER_MAIN_PATH)/handlers.go $(SERVER_MAIN_PATH)/templates.go
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(SERVER_BINARY_NAME)-darwin-amd64 $(SERVER_MAIN_PATH)/main.go $(SERVER_MAIN_PATH)/handlers.go $(SERVER_MAIN_PATH)/templates.go
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(SERVER_BINARY_NAME)-darwin-arm64 $(SERVER_MAIN_PATH)/main.go $(SERVER_MAIN_PATH)/handlers.go $(SERVER_MAIN_PATH)/templates.go
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(SERVER_BINARY_NAME)-windows-amd64.exe $(SERVER_MAIN_PATH)/main.go $(SERVER_MAIN_PATH)/handlers.go $(SERVER_MAIN_PATH)/templates.go
+	@echo "Building CLI for multiple platforms..."
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(CLI_BINARY_NAME)-linux-amd64 $(CLI_MAIN_PATH)/main.go
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(CLI_BINARY_NAME)-darwin-amd64 $(CLI_MAIN_PATH)/main.go
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(CLI_BINARY_NAME)-darwin-arm64 $(CLI_MAIN_PATH)/main.go
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(BUILD_FLAGS) $(LDFLAGS) -o $(BUILD_DIR)/$(CLI_BINARY_NAME)-windows-amd64.exe $(CLI_MAIN_PATH)/main.go
 
 # Clean build artifacts
 clean:
@@ -84,10 +101,18 @@ lint:
 	@which golangci-lint > /dev/null || (echo "golangci-lint not installed. Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; exit 1)
 	golangci-lint run
 
-# Run the application
-run:
-	@echo "Running $(BINARY_NAME)..."
-	$(GOCMD) run $(MAIN_PATH)/main.go $(MAIN_PATH)/handlers.go $(MAIN_PATH)/templates.go
+# Run the web server application
+run: run-server
+
+# Run the web server
+run-server:
+	@echo "Running $(SERVER_BINARY_NAME)..."
+	$(GOCMD) run $(SERVER_MAIN_PATH)/main.go $(SERVER_MAIN_PATH)/handlers.go $(SERVER_MAIN_PATH)/templates.go
+
+# Run the CLI application
+run-cli:
+	@echo "Running $(CLI_BINARY_NAME)..."
+	$(GOCMD) run $(CLI_MAIN_PATH)/main.go
 
 # Development mode with hot reload (requires air)
 dev:
@@ -146,13 +171,13 @@ generate-test:
 # Start server in background for testing
 start-bg:
 	@echo "Starting server in background..."
-	@$(GOCMD) run $(MAIN_PATH)/main.go $(MAIN_PATH)/handlers.go $(MAIN_PATH)/templates.go &
+	@$(GOCMD) run $(SERVER_MAIN_PATH)/main.go $(SERVER_MAIN_PATH)/handlers.go $(SERVER_MAIN_PATH)/templates.go &
 	@echo "Server started in background"
 
 # Stop background server
 stop-bg:
 	@echo "Stopping background server..."
-	@pkill -f "go run $(MAIN_PATH)/main.go" || true
+	@pkill -f "go run $(SERVER_MAIN_PATH)/main.go" || true
 
 # Full development setup
 setup: install-tools init-air deps
@@ -166,7 +191,9 @@ health:
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  build         - Build the application"
+	@echo "  build         - Build both server and CLI applications"
+	@echo "  build-server  - Build the web server"
+	@echo "  build-cli     - Build the CLI application"
 	@echo "  build-all     - Build for multiple platforms"
 	@echo "  clean         - Clean build artifacts"
 	@echo "  test          - Run tests"
@@ -176,7 +203,9 @@ help:
 	@echo "  fmt           - Format code"
 	@echo "  vet           - Run go vet"
 	@echo "  lint          - Run golangci-lint"
-	@echo "  run           - Run the application"
+	@echo "  run           - Run the web server (alias for run-server)"
+	@echo "  run-server    - Run the web server"
+	@echo "  run-cli       - Run the CLI application"
 	@echo "  dev           - Start development server with hot reload"
 	@echo "  install-tools - Install development tools (air, golangci-lint)"
 	@echo "  init-air      - Initialize air configuration"
@@ -195,4 +224,4 @@ help:
 dev-full: clean deps fmt vet dev
 
 # CI/CD workflow
-ci: clean deps fmt vet lint test build
+ci: clean deps fmt vet lint test build-server build-cli

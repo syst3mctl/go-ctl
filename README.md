@@ -1,32 +1,36 @@
-# go-ctl - Go Project Initializr
+# go-ctl - Go Project Generator
 
 <div align="center">
 
 ![go-ctl Logo](https://img.shields.io/badge/go--ctl-Go%20Project%20Generator-blue?style=for-the-badge&logo=go)
 
-**A modern, web-based Go project generator inspired by Spring Boot Initializr**
+**A modern Go project generator with web interface and powerful CLI - inspired by Spring Boot Initializr**
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat-square&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Made by](https://img.shields.io/badge/Made%20by-systemctl-purple?style=flat-square)](https://github.com/syst3mctl)
 
-[🚀 Live Demo](#getting-started) • [📚 Documentation](#documentation) • [🎯 Features](#features) • [🏗️ Architecture](#architecture)
+[🚀 Web Interface](#web-interface) • [💻 CLI Tool](#cli-tool) • [📚 Documentation](#documentation) • [🎯 Features](#features)
 
 </div>
 
 ## 🎯 Overview
 
-`go-ctl` is a sophisticated web application that generates production-ready Go projects with clean architecture. Simply configure your project requirements through an intuitive web interface and download a complete, runnable Go application with best practices built-in.
+`go-ctl` is a comprehensive Go project generator that provides both a beautiful web interface and a powerful CLI tool for creating production-ready Go projects with clean architecture. Generate complete, runnable Go applications with best practices built-in through either interface.
 
 ### ✨ Key Highlights
 
-- 🎨 **Beautiful Web Interface** - Modern, responsive UI with interactive file explorer
+- 🌐 **Dual Interface** - Beautiful web UI and powerful CLI for all workflows
 - 🏗️ **Clean Architecture** - Enforced separation of concerns in generated projects  
 - 🚀 **Multiple Frameworks** - Support for Gin, Echo, Fiber, Chi, and net/http
 - 💾 **Database Ready** - GORM, sqlx, MongoDB, Redis integrations
-- 📦 **Package Discovery** - Real-time search and dependency management
-- 🔍 **Project Preview** - Interactive file browser with syntax highlighting
-- ⚡ **Instant Download** - In-memory ZIP generation for fast delivery
+- 📦 **Smart Package Management** - Intelligent dependency analysis and upgrade recommendations
+- 🔍 **Project Analysis** - Comprehensive project structure and security analysis
+- 🎯 **Template Suggestions** - AI-powered template recommendations based on requirements
+- 🔄 **Interactive Wizards** - Step-by-step project configuration and requirement gathering
+- 🛡️ **Security Focus** - Automated vulnerability detection and resolution
+- 📋 **Configuration Files** - YAML-based config for repeatable project generation
+- ⚡ **Instant Generation** - Fast project creation and deployment
 
 ## 🚀 Getting Started
 
@@ -35,7 +39,7 @@
 - **Go 1.23+** installed on your system
 - **Git** for cloning the repository
 
-### Quick Start
+### Installation
 
 1. **Clone the repository**
    ```bash
@@ -46,6 +50,216 @@
 2. **Install dependencies**
    ```bash
    go mod tidy
+   ```
+
+3. **Build applications**
+   ```bash
+   # Build both web server and CLI
+   make build
+   
+   # Or build individually
+   make build-server  # Web interface
+   make build-cli     # CLI tool
+   ```
+
+## 🌐 Web Interface
+
+### Quick Start
+
+1. **Start the web server**
+   ```bash
+   make run-server
+   # or
+   ./bin/go-ctl-server
+   ```
+
+2. **Open your browser**
+   Navigate to `http://localhost:8080`
+
+3. **Generate your project**
+   - Configure project options through the web interface
+   - Preview project structure with the interactive file explorer
+   - Download your generated project as a ZIP file
+
+## 💻 CLI Tool
+
+### Quick Start
+
+1. **Install CLI globally** (optional)
+   ```bash
+   sudo cp bin/go-ctl /usr/local/bin/
+   ```
+
+2. **Generate a project**
+   ```bash
+   # Using flags
+   go-ctl generate my-api --http=gin --database=postgres --driver=gorm
+   
+   # Using templates
+   go-ctl generate my-api --template=api
+   
+   # Interactive mode
+   go-ctl generate --interactive
+   ```
+
+### CLI Features
+
+#### 🎯 Built-in Templates
+```bash
+go-ctl template list                    # List available templates
+go-ctl template show api                # Show template details
+go-ctl template preview api --name=my-project  # Preview structure
+```
+
+#### 📦 Smart Package Management
+```bash
+go-ctl package search web               # Search for packages
+go-ctl package popular database         # Popular packages by category
+go-ctl package info github.com/gin-gonic/gin  # Package details
+go-ctl package validate <import-path>   # Validate packages
+go-ctl package upgrade                  # Analyze & upgrade dependencies
+go-ctl package upgrade --security-only  # Security updates only
+```
+
+#### 🎯 Smart Template Suggestions
+```bash
+go-ctl template suggest                 # Interactive questionnaire
+go-ctl template suggest --use-case=api  # Specific use case
+go-ctl template suggest --interactive   # Full interactive mode
+```
+
+#### 🔍 Project Analysis
+```bash
+go-ctl analyze                          # Analyze current project
+go-ctl analyze --detailed               # Comprehensive analysis
+go-ctl analyze --upgrade-check          # Include upgrade recommendations
+go-ctl analyze --focus=dependencies,security  # Focus areas
+```
+
+#### ⚙️ Configuration Management
+```bash
+go-ctl config init                      # Create config file
+go-ctl config show                      # Show current config
+go-ctl config set project.go_version 1.23  # Set default values
+```
+
+#### 🚀 Project Generation Examples
+```bash
+# With smart suggestions
+go-ctl generate --suggest               # Get template recommendations first
+
+# REST API with PostgreSQL
+go-ctl generate blog-api --template=api
+
+# Microservice with Redis caching
+go-ctl generate user-service --template=microservice
+
+# CLI application
+go-ctl generate my-tool --template=cli --packages=github.com/fatih/color
+
+# Custom configuration
+go-ctl generate my-service \
+  --http=gin \
+  --database=postgres,redis \
+  --features=docker,makefile,cors,jwt \
+  --packages=github.com/google/uuid
+```
+
+#### 🔧 Shell Completion
+```bash
+# Bash
+go-ctl completion bash | sudo tee /etc/bash_completion.d/go-ctl
+
+# Zsh  
+go-ctl completion zsh > "${fpath[1]}/_go-ctl"
+
+# Fish
+go-ctl completion fish > ~/.config/fish/completions/go-ctl.fish
+```
+
+#### 🎉 Phase 3 Advanced Features (New!)
+
+**Smart Dependency Management**
+- Automated security vulnerability detection
+- Intelligent upgrade recommendations with risk assessment
+- Alternative package suggestions for deprecated dependencies
+- Interactive upgrade confirmation with detailed explanations
+
+**AI-Powered Template Suggestions**
+- Project requirement analysis from existing codebases
+- Interactive questionnaire for optimal template matching
+- Confidence scoring with pros/cons analysis
+- Integration with generate command for seamless workflow
+
+**Comprehensive Project Analysis**
+- Detailed project structure and pattern detection
+- Code quality metrics and maintainability scoring
+- Performance optimization suggestions
+- Security analysis with actionable recommendations
+
+### 🎉 Phase 4: Enhanced Developer Experience
+
+Phase 4 brings significant CLI enhancements for professional development workflows:
+
+#### 📊 Enhanced Output & Formatting
+```bash
+# JSON output for CI/CD integration
+go-ctl generate my-api --http=gin --output-format=json
+go-ctl template list --output-format=json
+go-ctl analyze --output-format=json > analysis-report.json
+
+# Enhanced progress indicators and statistics
+go-ctl generate my-project --show-stats --detailed
+go-ctl generate my-api --verbose  # Step-by-step progress
+
+# Quiet mode for scripting
+go-ctl template list --quiet
+go-ctl analyze --quiet  # Only outputs score
+```
+
+#### 📚 Comprehensive Documentation System
+```bash
+# Generate man pages for system integration
+go-ctl docs man /usr/share/man/man1
+sudo mandb && man go-ctl
+
+# Export usage examples and troubleshooting
+go-ctl docs examples examples.md
+go-ctl docs troubleshoot troubleshoot.md
+```
+
+#### ⚡ Enhanced Shell Completion
+```bash
+# Install enhanced completion with dynamic suggestions
+go-ctl completion bash > /etc/bash_completion.d/go-ctl
+
+# Features include:
+# • Context-aware HTTP framework completion
+# • Dynamic package name suggestions  
+# • Template completion with descriptions
+# • Configuration value completion
+```
+
+#### 🎯 Professional Output Features
+- **Rich Statistics**: File counts, dependencies, processing time
+- **Next Steps Guidance**: Context-aware post-generation instructions  
+- **Machine-Readable JSON**: Perfect for automation and CI/CD
+- **Enhanced Error Messages**: Helpful suggestions and troubleshooting
+- **Progress Indicators**: Visual feedback during generation
+
+For complete CLI documentation and Phase 3 features, see [PHASE3-COMPLETED.md](PHASE3-COMPLETED.md) and run `./demo-phase3.sh`.  
+For Phase 4 enhancements, see [PHASE4-COMPLETED.md](PHASE4-COMPLETED.md) and run `./demo-phase4.sh`.
+
+### Development Setup
+
+1. **Development tools**
+   ```bash
+   make install-tools  # Install air, golangci-lint
+   ```
+
+2. **Start development server**
+   ```bash
+   make dev           # Web server with hot reload
    ```
 
 3. **Run the server**
