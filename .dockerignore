@@ -99,8 +99,8 @@ examples/
 # Makefile (not needed in container)
 Makefile
 
-# Air configuration (for development)
-.air.toml
+# Air configuration (for development) - commented out to allow in dev builds
+# .air.toml
 
 # License file (optional)
 LICENSE

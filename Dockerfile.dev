@@ -5,7 +5,7 @@ FROM golang:1.23-alpine
 RUN apk add --no-cache git ca-certificates tzdata wget
 
 # Install Air for hot reload
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/air-verse/air@v1.52.3
 
 # Set working directory
 WORKDIR /app
