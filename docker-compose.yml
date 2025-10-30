@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  # Go-ctl web application
+  go-ctl-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - PORT=8085
+      - GIN_MODE=release
+    volumes:
+      - ./static:/app/static:ro
+      - ./templates:/app/templates:ro
+      - ./options.json:/app/options.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8085/",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: go-ctl-network

@@ -137,6 +137,11 @@ docker-build:
 	@echo "Building Docker image..."
 	docker build -t $(DOCKER_IMAGE) .
 
+# Docker build for development
+docker-build-dev:
+	@echo "Building Docker development image..."
+	docker build -t go-ctl:dev -f Dockerfile.dev .
+
 # Docker run
 docker-run:
 	@echo "Running Docker container..."
@@ -147,10 +152,34 @@ docker-up:
 	@echo "Starting with docker-compose..."
 	docker-compose up --build
 
+# Docker compose up for development
+docker-up-dev:
+	@echo "Starting development environment..."
+	docker-compose -f docker-compose.dev.yml up --build
+
 # Docker compose down
 docker-down:
 	@echo "Stopping docker-compose..."
 	docker-compose down
+
+# Docker compose down for development
+docker-down-dev:
+	@echo "Stopping development environment..."
+	docker-compose -f docker-compose.dev.yml down
+
+# Docker logs
+docker-logs:
+	@echo "Showing application logs..."
+	docker-compose logs -f go-ctl-web
+
+docker-logs-dev:
+	@echo "Showing development logs..."
+	docker-compose -f docker-compose.dev.yml logs -f go-ctl-dev
+
+# Docker cleanup
+docker-clean:
+	@echo "Cleaning up Docker resources..."
+	docker system prune -f
 
 # Generate project (for testing)
 generate-test:
@@ -191,29 +220,47 @@ health:
 # Show help
 help:
 	@echo "Available targets:"
+	@echo ""
+	@echo "Build targets:"
 	@echo "  build         - Build both server and CLI applications"
 	@echo "  build-server  - Build the web server"
 	@echo "  build-cli     - Build the CLI application"
 	@echo "  build-all     - Build for multiple platforms"
 	@echo "  clean         - Clean build artifacts"
+	@echo ""
+	@echo "Test targets:"
 	@echo "  test          - Run tests"
 	@echo "  coverage      - Run tests with coverage report"
 	@echo "  bench         - Run benchmarks"
+	@echo ""
+	@echo "Development tools:"
 	@echo "  deps          - Download dependencies"
 	@echo "  fmt           - Format code"
 	@echo "  vet           - Run go vet"
 	@echo "  lint          - Run golangci-lint"
+	@echo "  install-tools - Install development tools (air, golangci-lint)"
+	@echo "  init-air      - Initialize air configuration"
+	@echo "  setup         - Full development setup"
+	@echo ""
+	@echo "Run targets:"
 	@echo "  run           - Run the web server (alias for run-server)"
 	@echo "  run-server    - Run the web server"
 	@echo "  run-cli       - Run the CLI application"
 	@echo "  dev           - Start development server with hot reload"
-	@echo "  install-tools - Install development tools (air, golangci-lint)"
-	@echo "  init-air      - Initialize air configuration"
-	@echo "  setup         - Full development setup"
-	@echo "  docker-build  - Build Docker image"
-	@echo "  docker-run    - Run Docker container"
-	@echo "  docker-up     - Start with docker-compose"
-	@echo "  docker-down   - Stop docker-compose"
+	@echo ""
+	@echo "Docker targets:"
+	@echo "  docker-build     - Build Docker image for production"
+	@echo "  docker-build-dev - Build Docker image for development"
+	@echo "  docker-run       - Run Docker container"
+	@echo "  docker-up        - Start with docker-compose"
+	@echo "  docker-up-dev    - Start development environment"
+	@echo "  docker-down      - Stop docker-compose"
+	@echo "  docker-down-dev  - Stop development environment"
+	@echo "  docker-logs      - Show application logs"
+	@echo "  docker-logs-dev  - Show development logs"
+	@echo "  docker-clean     - Clean up Docker resources"
+	@echo ""
+	@echo "Utility targets:"
 	@echo "  generate-test - Generate test project (server must be running)"
 	@echo "  start-bg      - Start server in background"
 	@echo "  stop-bg       - Stop background server"

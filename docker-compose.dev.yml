@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  # Development service with hot reload using Air
+  go-ctl-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8085:8085"
+    environment:
+      - PORT=8085
+      - GIN_MODE=debug
+      - GO_ENV=development
+    volumes:
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+    working_dir: /app
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8085/",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  go-mod-cache:
+    driver: local
+
+networks:
+  default:
+    name: go-ctl-dev-network

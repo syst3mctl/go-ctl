@@ -1,0 +1,114 @@
+# Binaries and build artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+go-ctl
+go-ctl-server
+go-ctl-cli
+
+# Test binaries, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+*.tmp
+*.temp
+
+# Log files
+*.log
+logs/
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.*.local
+
+# Docker files (avoid recursive builds)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Git files
+.git/
+.gitignore
+.gitmodules
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Documentation files (optional - you might want to include some)
+README.md
+docs/
+*.md
+!AGENT.md
+
+# Test files and test data
+*_test.go
+test*/
+testdata/
+
+# Generated files
+*.pb.go
+*.gen.go
+
+# Cache directories
+.cache/
+node_modules/
+
+# Development scripts
+demo-*.sh
+verify_*.sh
+
+# Example configurations
+*.example.*
+examples/
+
+# Makefile (not needed in container)
+Makefile
+
+# Air configuration (for development)
+.air.toml
+
+# License file (optional)
+LICENSE
+
+# Version control hooks
+.git-hooks/
+
+# Local development files
+*.local
+.env.development
+.env.production
