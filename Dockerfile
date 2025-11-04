@@ -38,13 +38,16 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/go-ctl-server .
 
-# Copy required directories and files
-COPY --chown=goctl:goctl static/ ./static/
-COPY --chown=goctl:goctl templates/ ./templates/
-COPY --chown=goctl:goctl options.json ./
+# Create required directories first
+RUN mkdir -p ./static ./templates tmp bin
 
-# Create directories that might be needed at runtime
-RUN mkdir -p tmp bin && chown -R goctl:goctl /app
+# Copy required directories and files from builder stage
+COPY --from=builder --chown=goctl:goctl /app/static/ ./static/
+COPY --from=builder --chown=goctl:goctl /app/templates/ ./templates/
+COPY --from=builder --chown=goctl:goctl /app/options.json ./
+
+# Set ownership
+RUN chown -R goctl:goctl /app
 
 # Switch to non-root user
 USER goctl

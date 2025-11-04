@@ -1,0 +1,3 @@
+# This file ensures the static directory exists in git
+# Docker COPY commands require at least one file in a directory
+
