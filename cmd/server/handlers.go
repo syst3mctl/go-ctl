@@ -750,9 +750,32 @@ func searchPackagesFallback(query string) ([]PkgGoDevResult, error) {
 	return results, nil
 }
 
+// isNetHTTPRawSQLPattern checks if the configuration uses net/http with database/sql
+func isNetHTTPRawSQLPattern(config metadata.ProjectConfig) bool {
+	if config.HttpPackage.ID != "net-http" {
+		return false
+	}
+	if len(config.Databases) == 0 {
+		return false
+	}
+	// Check if any database uses database-sql driver
+	for _, dbSelection := range config.Databases {
+		if dbSelection.Driver.ID == "database-sql" {
+			return true
+		}
+	}
+	return false
+}
+
 // generateFileItems creates file items for the file tree modal
 func generateFileItems(config metadata.ProjectConfig) []FileItem {
-	// Create list of all file paths
+	// Always use the net/http + raw SQL pattern structure for all projects
+	// This provides a consistent structure regardless of HTTP framework or database driver
+	return generateNetHTTPRawSQLFileItems(config)
+}
+
+// generateNetHTTPRawSQLFileItems creates file items for net/http + raw SQL pattern
+func generateNetHTTPRawSQLFileItems(config metadata.ProjectConfig) []FileItem {
 	filePaths := []struct {
 		Path string
 		Icon string
@@ -760,28 +783,67 @@ func generateFileItems(config metadata.ProjectConfig) []FileItem {
 		{"go.mod", "fas fa-cube text-green-500"},
 		{"README.md", "fab fa-markdown text-blue-600"},
 		{fmt.Sprintf("cmd/%s/main.go", config.ProjectName), "fab fa-golang text-blue-500"},
-		{"internal/config/config.go", "fas fa-cog text-gray-600"},
+		{"cmd/config/config.go", "fas fa-cog text-gray-600"},
 		{"internal/domain/model.go", "fab fa-golang text-blue-500"},
-		{"internal/service/service.go", "fab fa-golang text-blue-500"},
-		{"internal/handler/handler.go", "fab fa-golang text-blue-500"},
+		{"internal/handlers/handler.go", "fab fa-golang text-blue-500"},
+		{"internal/handlers/routes.go", "fab fa-golang text-blue-500"},
+		{"internal/handlers/middleware.go", "fab fa-golang text-blue-500"},
+		{"internal/handlers/users.go", "fab fa-golang text-blue-500"},
+		{"internal/handlers/dto/request.go", "fab fa-golang text-blue-500"},
+		{"internal/validate/validate.go", "fab fa-golang text-blue-500"},
+		{"internal/validate/response.go", "fab fa-golang text-blue-500"},
+		{"internal/gen/gen.go", "fab fa-golang text-blue-500"},
 	}
 
-	// Add database storage layer if configured
-	if len(config.Databases) > 0 {
-		// Add storage db.go file
-		filePaths = append(filePaths, struct {
-			Path string
-			Icon string
-		}{"internal/storage/db.go", "fas fa-database text-purple-500"})
+	// Check if Redis is selected
+	hasRedis := false
+	for _, dbSelection := range config.Databases {
+		if dbSelection.Database.ID == "redis" {
+			hasRedis = true
+			break
+		}
+	}
 
-		// Add repository files for each database
+	// Only add SQL database files if there's at least one SQL database
+	if len(config.Databases) > 0 {
+		hasSQLDB := false
 		for _, dbSelection := range config.Databases {
-			storageFile := fmt.Sprintf("internal/storage/%s/repository.go", dbSelection.Database.ID)
-			filePaths = append(filePaths, struct {
+			if dbSelection.Database.ID != "redis" && dbSelection.Database.ID != "mongodb" {
+				hasSQLDB = true
+				break
+			}
+		}
+
+		if hasSQLDB {
+			filePaths = append(filePaths,
+				struct {
+					Path string
+					Icon string
+				}{"internal/db/db.go", "fas fa-database text-purple-500"},
+				struct {
+					Path string
+					Icon string
+				}{"internal/store/store.go", "fas fa-database text-purple-500"},
+				struct {
+					Path string
+					Icon string
+				}{"internal/store/user.go", "fas fa-database text-purple-500"},
+			)
+		}
+	}
+
+	// Add Redis files if Redis is selected
+	if hasRedis {
+		filePaths = append(filePaths,
+			struct {
 				Path string
 				Icon string
-			}{storageFile, "fas fa-database text-purple-500"})
-		}
+			}{"internal/db/redis.go", "fas fa-database text-red-500"},
+			struct {
+				Path string
+				Icon string
+			}{"internal/store/redis.go", "fas fa-database text-red-500"},
+		)
 	}
 
 	// Add feature files
@@ -826,10 +888,6 @@ func generateFileItems(config metadata.ProjectConfig) []FileItem {
 				Path string
 				Icon string
 			}{"internal/testing/testing.go", "fas fa-vial text-green-600"})
-			filePaths = append(filePaths, struct {
-				Path string
-				Icon string
-			}{"internal/service/service_test.go", "fas fa-vial text-green-600"})
 		}
 	}
 
@@ -901,10 +959,20 @@ func getFolderIcon(name string, isFolder bool) string {
 			return "fas fa-cube text-green-600"
 		case "service":
 			return "fas fa-server text-purple-600"
-		case "handler":
+		case "handler", "handlers":
 			return "fas fa-hand-paper text-orange-600"
 		case "storage":
 			return "fas fa-database text-red-600"
+		case "db":
+			return "fas fa-database text-purple-500"
+		case "store":
+			return "fas fa-archive text-indigo-600"
+		case "validate":
+			return "fas fa-check-circle text-green-600"
+		case "gen":
+			return "fas fa-magic text-pink-600"
+		case "dto":
+			return "fas fa-file-code text-blue-400"
 		default:
 			return "fas fa-folder text-yellow-600"
 		}

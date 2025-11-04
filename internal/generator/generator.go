@@ -63,6 +63,23 @@ func (g *Generator) LoadTemplates() error {
 		"database-sql.storage.go": "templates/database/database-sql.storage.go.tpl",
 		"mongo-driver.storage.go": "templates/database/mongo-driver.storage.go.tpl",
 		"redis-client.storage.go": "templates/database/redis-client.storage.go.tpl",
+
+		// Net/HTTP + Raw SQL pattern templates
+		"main-net-http-raw":                "templates/base/main-net-http-raw.tpl",
+		"cmd-config.config.go":             "templates/base/cmd-config/config.go.tpl",
+		"internal-db.db.go":                "templates/base/internal-db/db.go.tpl",
+		"internal-db.redis.go":             "templates/base/internal-db/redis.go.tpl",
+		"internal-store.store.go":          "templates/base/internal-store/store.go.tpl",
+		"internal-store.user.go":           "templates/base/internal-store/user.go.tpl",
+		"internal-store.redis.go":          "templates/base/internal-store/redis.go.tpl",
+		"internal-handlers.handler.go":     "templates/base/internal-handlers/handler.go.tpl",
+		"internal-handlers.routes.go":      "templates/base/internal-handlers/routes.go.tpl",
+		"internal-handlers.middleware.go":  "templates/base/internal-handlers/middleware.go.tpl",
+		"internal-handlers.users.go":       "templates/base/internal-handlers/users.go.tpl",
+		"internal-handlers-dto.request.go": "templates/base/internal-handlers/dto/request.go.tpl",
+		"internal-validate.validate.go":    "templates/base/internal-validate/validate.go.tpl",
+		"internal-validate.response.go":    "templates/base/internal-validate/response.go.tpl",
+		"internal-gen.gen.go":              "templates/base/internal-gen/gen.go.tpl",
 	}
 
 	// Custom template functions
@@ -71,6 +88,14 @@ func (g *Generator) LoadTemplates() error {
 		"lower":   strings.ToLower,
 		"upper":   strings.ToUpper,
 		"replace": strings.ReplaceAll,
+		"hasRedis": func(databases []metadata.DatabaseSelection) bool {
+			for _, db := range databases {
+				if db.Database.ID == "redis" {
+					return true
+				}
+			}
+			return false
+		},
 	}
 
 	// Load each template
@@ -195,33 +220,91 @@ func (g *Generator) GenerateProjectZip(config metadata.ProjectConfig, w io.Write
 	return nil
 }
 
+// isNetHTTPRawSQLPattern checks if the configuration uses net/http with database/sql
+func (g *Generator) isNetHTTPRawSQLPattern(config metadata.ProjectConfig) bool {
+	if config.HttpPackage.ID != "net-http" {
+		return false
+	}
+	if len(config.Databases) == 0 {
+		return false
+	}
+	// Check if any database uses database-sql driver
+	for _, dbSelection := range config.Databases {
+		if dbSelection.Driver.ID == "database-sql" {
+			return true
+		}
+	}
+	return false
+}
+
 // generateProjectStructure creates the complete project file structure
 func (g *Generator) generateProjectStructure(config metadata.ProjectConfig) map[string]string {
+	// Always use the net/http + raw SQL pattern structure for all projects
+	// This provides a consistent structure regardless of HTTP framework or database driver
+	return g.generateNetHTTPRawSQLStructure(config)
+}
+
+// generateNetHTTPRawSQLStructure creates project structure for net/http + raw SQL pattern
+func (g *Generator) generateNetHTTPRawSQLStructure(config metadata.ProjectConfig) map[string]string {
 	files := make(map[string]string)
 
 	// Base files
 	files["go.mod"] = g.renderTemplate("go.mod", config)
 	files["README.md"] = g.renderTemplate("README.md", config)
-	files[fmt.Sprintf("cmd/%s/main.go", config.ProjectName)] = g.renderTemplate("main.go", config)
+	files[fmt.Sprintf("cmd/%s/main.go", config.ProjectName)] = g.renderTemplate("main-net-http-raw", config)
 
-	// Core structure
-	files["internal/config/config.go"] = g.renderTemplate("config.go", config)
-	files["internal/domain/model.go"] = g.renderTemplate("domain.model.go", config)
-	files["internal/service/service.go"] = g.renderTemplate("service.service.go", config)
-	files["internal/handler/handler.go"] = g.renderTemplate("handler.handler.go", config)
-	files["internal/handler/http.go"] = g.renderTemplate("handler.http.go", config)
+	// Configuration in cmd/config
+	files["cmd/config/config.go"] = g.renderTemplate("cmd-config.config.go", config)
 
-	// Database layer if specified
-	if len(config.Databases) > 0 {
-		// Database initialization
-		files["internal/storage/db.go"] = g.renderTemplate("storage.db.go", config)
-
-		// Repository implementations - organized by database type
-		for _, dbSelection := range config.Databases {
-			repositoryFile := g.getRepositoryTemplate(dbSelection.Database.ID)
-			files[fmt.Sprintf("internal/storage/%s/repository.go", dbSelection.Database.ID)] = g.renderTemplate(repositoryFile, config)
+	// Database connection
+	hasRedis := false
+	for _, dbSelection := range config.Databases {
+		if dbSelection.Database.ID == "redis" {
+			hasRedis = true
+			break
 		}
 	}
+
+	if len(config.Databases) > 0 {
+		// Only generate SQL database files if there's at least one SQL database
+		hasSQLDB := false
+		for _, dbSelection := range config.Databases {
+			if dbSelection.Database.ID != "redis" && dbSelection.Database.ID != "mongodb" {
+				hasSQLDB = true
+				break
+			}
+		}
+
+		if hasSQLDB {
+			files["internal/db/db.go"] = g.renderTemplate("internal-db.db.go", config)
+			// Store layer
+			files["internal/store/store.go"] = g.renderTemplate("internal-store.store.go", config)
+			files["internal/store/user.go"] = g.renderTemplate("internal-store.user.go", config)
+		}
+	}
+
+	// Redis files
+	if hasRedis {
+		files["internal/db/redis.go"] = g.renderTemplate("internal-db.redis.go", config)
+		files["internal/store/redis.go"] = g.renderTemplate("internal-store.redis.go", config)
+	}
+
+	// Handlers
+	files["internal/handlers/handler.go"] = g.renderTemplate("internal-handlers.handler.go", config)
+	files["internal/handlers/routes.go"] = g.renderTemplate("internal-handlers.routes.go", config)
+	files["internal/handlers/middleware.go"] = g.renderTemplate("internal-handlers.middleware.go", config)
+	files["internal/handlers/users.go"] = g.renderTemplate("internal-handlers.users.go", config)
+	files["internal/handlers/dto/request.go"] = g.renderTemplate("internal-handlers-dto.request.go", config)
+
+	// Validation
+	files["internal/validate/validate.go"] = g.renderTemplate("internal-validate.validate.go", config)
+	files["internal/validate/response.go"] = g.renderTemplate("internal-validate.response.go", config)
+
+	// Utilities
+	files["internal/gen/gen.go"] = g.renderTemplate("internal-gen.gen.go", config)
+
+	// Domain models (use existing template)
+	files["internal/domain/model.go"] = g.renderTemplate("domain.model.go", config)
 
 	// Feature files
 	for _, feature := range config.Features {
@@ -241,7 +324,6 @@ func (g *Generator) generateProjectStructure(config metadata.ProjectConfig) map[
 			files["internal/logger/logger.go"] = g.renderTemplate("zerolog.go", config)
 		case "testing":
 			files["internal/testing/testing.go"] = g.renderTemplate("testing.go", config)
-			files["internal/service/service_test.go"] = g.renderTemplate("service_test.go", config)
 		}
 	}
 
@@ -279,6 +361,14 @@ func (g *Generator) renderTemplate(templateName string, config metadata.ProjectC
 		"lower":   strings.ToLower,
 		"upper":   strings.ToUpper,
 		"replace": strings.ReplaceAll,
+		"hasRedis": func(databases []metadata.DatabaseSelection) bool {
+			for _, db := range databases {
+				if db.Database.ID == "redis" {
+					return true
+				}
+			}
+			return false
+		},
 	}
 
 	// Clone template with enhanced function map
@@ -286,10 +376,34 @@ func (g *Generator) renderTemplate(templateName string, config metadata.ProjectC
 	enhancedTemplate.Funcs(enhancedFuncMap)
 
 	// Get primary database and driver for template compatibility
+	// For SQL database templates, use the first SQL database (not Redis/MongoDB)
 	var database, dbDriver metadata.Option
 	if len(config.Databases) > 0 {
-		database = config.Databases[0].Database
-		dbDriver = config.Databases[0].Driver
+		// Check if this is a SQL database template
+		isSQLTemplate := strings.Contains(templateName, "internal-db.db.go") ||
+			strings.Contains(templateName, "internal-store.store.go") ||
+			strings.Contains(templateName, "internal-store.user.go") ||
+			strings.Contains(templateName, "cmd-config.config.go")
+
+		if isSQLTemplate {
+			// Find first SQL database (not Redis or MongoDB)
+			for _, dbSelection := range config.Databases {
+				if dbSelection.Database.ID != "redis" && dbSelection.Database.ID != "mongodb" {
+					database = dbSelection.Database
+					dbDriver = dbSelection.Driver
+					break
+				}
+			}
+			// Fallback to first database if no SQL database found
+			if database.ID == "" && len(config.Databases) > 0 {
+				database = config.Databases[0].Database
+				dbDriver = config.Databases[0].Driver
+			}
+		} else {
+			// For non-SQL templates, use first database
+			database = config.Databases[0].Database
+			dbDriver = config.Databases[0].Driver
+		}
 	}
 
 	// Create a wrapper with HasFeature method

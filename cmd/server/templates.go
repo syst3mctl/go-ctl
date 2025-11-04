@@ -434,6 +434,16 @@ const indexTemplate = `<!DOCTYPE html>
             const driverSection = document.getElementById('driver-section');
             const driverContainer = document.getElementById('driver-container');
 
+            // Save current selected driver values before clearing
+            const savedSelections = {};
+            databaseCheckboxes.forEach(checkbox => {
+                const database = checkbox.value;
+                const driverRadio = document.querySelector('input[name="driver_' + database + '"]:checked');
+                if (driverRadio) {
+                    savedSelections[database] = driverRadio.value;
+                }
+            });
+
             // Clear existing driver options
             driverContainer.innerHTML = '';
 
@@ -449,16 +459,19 @@ const indexTemplate = `<!DOCTYPE html>
                 'postgres': [
                     { id: 'gorm', name: 'GORM', description: 'The fantastic ORM library for Golang' },
                     { id: 'sqlx', name: 'sqlx', description: 'Extensions to database/sql with easier scanning' },
+                    { id: 'ent', name: 'Ent', description: 'An entity framework for Go with schema-first code generation' },
                     { id: 'database-sql', name: 'database/sql', description: 'Standard library SQL interface' }
                 ],
                 'mysql': [
                     { id: 'gorm', name: 'GORM', description: 'The fantastic ORM library for Golang' },
                     { id: 'sqlx', name: 'sqlx', description: 'Extensions to database/sql with easier scanning' },
+                    { id: 'ent', name: 'Ent', description: 'An entity framework for Go with schema-first code generation' },
                     { id: 'database-sql', name: 'database/sql', description: 'Standard library SQL interface' }
                 ],
                 'sqlite': [
                     { id: 'gorm', name: 'GORM', description: 'The fantastic ORM library for Golang' },
                     { id: 'sqlx', name: 'sqlx', description: 'Extensions to database/sql with easier scanning' },
+                    { id: 'ent', name: 'Ent', description: 'An entity framework for Go with schema-first code generation' },
                     { id: 'database-sql', name: 'database/sql', description: 'Standard library SQL interface' }
                 ],
                 'mongodb': [
@@ -478,12 +491,17 @@ const indexTemplate = `<!DOCTYPE html>
                 if (driverOptions[database]) {
                     const dbSection = document.createElement('div');
                     dbSection.className = 'border border-gray-200 rounded-lg p-4';
+                    const savedSelection = savedSelections[database];
+                    const defaultDriver = driverOptions[database][0].id;
+                    const selectedDriver = savedSelection || defaultDriver;
+                    
                     dbSection.innerHTML =
                         '<h4 class="font-medium text-gray-900 mb-3 capitalize">' + database + ' Driver</h4>' +
                         '<div class="space-y-2">' +
                             driverOptions[database].map(function(driver) {
+                                const isChecked = driver.id === selectedDriver ? 'checked' : '';
                                 return '<label class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 border border-gray-200 cursor-pointer transition-colors duration-150">' +
-                                    '<input type="radio" name="driver_' + database + '" value="' + driver.id + '" class="mt-1 text-blue-600 border-gray-300 focus:ring-blue-500" required>' +
+                                    '<input type="radio" name="driver_' + database + '" value="' + driver.id + '" ' + isChecked + ' class="mt-1 text-blue-600 border-gray-300 focus:ring-blue-500" required>' +
                                     '<div class="flex-1 min-w-0">' +
                                         '<div class="text-sm font-medium text-gray-900">' + driver.name + '</div>' +
                                         '<div class="text-sm text-gray-500">' + driver.description + '</div>' +
