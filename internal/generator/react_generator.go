@@ -7,7 +7,7 @@ import (
 	"github.com/syst3mctl/go-ctl/internal/metadata"
 )
 
-// GenerateReactProject generates a React project structure
+// GenerateReactProject generates a frontend project structure (supports React, Angular, Solid JS, Vue, Svelte)
 func (g *Generator) GenerateReactProject(config metadata.ProjectConfig) map[string]string {
 	if config.FrontendConfig == nil {
 		return make(map[string]string)
@@ -15,7 +15,33 @@ func (g *Generator) GenerateReactProject(config metadata.ProjectConfig) map[stri
 
 	files := make(map[string]string)
 	frontendConfig := config.FrontendConfig
+	frameworkID := frontendConfig.Framework.ID
+	if frameworkID == "" {
+		frameworkID = "react" // Default to React
+	}
 	isTypeScript := frontendConfig.Language.ID == "typescript"
+
+	// Generate framework-specific project structure
+	switch frameworkID {
+	case "react":
+		return g.generateReactProject(files, config, isTypeScript)
+	case "angular":
+		return g.generateAngularProject(files, config, isTypeScript)
+	case "solid":
+		return g.generateSolidProject(files, config, isTypeScript)
+	case "vue":
+		return g.generateVueProject(files, config, isTypeScript)
+	case "svelte":
+		return g.generateSvelteProject(files, config, isTypeScript)
+	default:
+		// Default to React if framework is unknown
+		return g.generateReactProject(files, config, isTypeScript)
+	}
+}
+
+// generateReactProject generates a React project structure
+func (g *Generator) generateReactProject(files map[string]string, config metadata.ProjectConfig, isTypeScript bool) map[string]string {
+	frontendConfig := config.FrontendConfig
 
 	// package.json
 	files["package.json"] = g.generatePackageJson(config)
@@ -1078,3 +1104,1568 @@ export function useAppContext() {
 `
 }
 
+
+// generateAngularProject generates an Angular project structure
+func (g *Generator) generateAngularProject(files map[string]string, config metadata.ProjectConfig, isTypeScript bool) map[string]string {
+	frontendConfig := config.FrontendConfig
+
+	// package.json
+	files["package.json"] = g.generateAngularPackageJson(config)
+
+	// Angular config
+	files["angular.json"] = g.generateAngularConfig(config)
+
+	// TypeScript configs
+	files["tsconfig.json"] = g.generateAngularTSConfig(config)
+	files["tsconfig.app.json"] = g.generateAngularTSConfigApp(config)
+	files["tsconfig.spec.json"] = g.generateAngularTSConfigSpec(config)
+
+	// ESLint config
+	if frontendConfig.Linter.ID == "eslint" {
+		files[".eslintrc.json"] = g.generateAngularESLintConfig(config)
+	}
+
+	// Prettier config
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		files[".prettierrc"] = g.generatePrettierConfig(config)
+		files[".prettierignore"] = g.generatePrettierIgnore(config)
+	}
+
+	// Tailwind config
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		files["tailwind.config.js"] = g.generateTailwindConfig(config)
+		files["postcss.config.js"] = g.generatePostCSSConfig(config)
+	}
+
+	// Main files
+	files["src/index.html"] = g.generateAngularIndexHTML(config)
+	files["src/main.ts"] = g.generateAngularMainTS(config)
+	files["src/app/app.config.ts"] = g.generateAngularAppConfig(config)
+	files["src/app/app.component.ts"] = g.generateAngularAppComponent(config)
+	files["src/app/app.component.html"] = g.generateAngularAppTemplate(config)
+	files["src/app/app.component.css"] = g.generateAngularAppStyles(config, hasTailwind)
+
+	// Example component
+	files["src/app/components/hello-world.component.ts"] = g.generateAngularHelloWorldComponent(config)
+	files["src/app/components/hello-world.component.html"] = g.generateAngularHelloWorldTemplate(config)
+	files["src/app/components/hello-world.component.css"] = g.generateAngularHelloWorldStyles(config)
+
+	// Styles
+	files["src/styles.css"] = g.generateAngularStyles(config, hasTailwind)
+
+	// .gitignore
+	files[".gitignore"] = g.generateFrontendGitignore(config)
+
+	// README
+	files["README.md"] = g.generateAngularREADME(config)
+
+	return files
+}
+
+// generateAngularPackageJson generates package.json for Angular
+func (g *Generator) generateAngularPackageJson(config metadata.ProjectConfig) string {
+	frontendConfig := config.FrontendConfig
+
+	dependencies := map[string]string{
+		"@angular/core":                  "^17.0.0",
+		"@angular/platform-browser":     "^17.0.0",
+		"@angular/common":                "^17.0.0",
+		"@angular/forms":                "^17.0.0",
+		"rxjs":                           "^7.8.1",
+		"tslib":                          "^2.6.2",
+		"zone.js":                        "^0.14.2",
+	}
+
+	devDependencies := map[string]string{
+		"@angular-devkit/build-angular": "^17.0.0",
+		"@angular/cli":                  "^17.0.0",
+		"@angular/compiler-cli":          "^17.0.0",
+		"@types/node":                    "^20.10.0",
+		"typescript":                     "~5.2.2",
+	}
+
+	// Add feature dependencies
+	for _, feature := range frontendConfig.Features {
+		switch feature.ID {
+		case "axios":
+			dependencies["axios"] = "^1.6.0"
+		}
+	}
+
+	// Add linter
+	if frontendConfig.Linter.ID == "eslint" {
+		devDependencies["@angular-eslint/builder"] = "^17.0.0"
+		devDependencies["@angular-eslint/eslint-plugin"] = "^17.0.0"
+		devDependencies["@angular-eslint/template-parser"] = "^17.0.0"
+		devDependencies["@typescript-eslint/eslint-plugin"] = "^6.12.0"
+		devDependencies["@typescript-eslint/parser"] = "^6.12.0"
+		devDependencies["eslint"] = "^8.54.0"
+	}
+
+	// Add Prettier
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		devDependencies["prettier"] = "^3.1.0"
+		devDependencies["eslint-config-prettier"] = "^9.0.0"
+	}
+
+	// Add Tailwind
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		devDependencies["tailwindcss"] = "^3.3.6"
+		devDependencies["postcss"] = "^8.4.32"
+		devDependencies["autoprefixer"] = "^10.4.16"
+	}
+
+	// Add custom npm packages
+	for _, pkg := range frontendConfig.CustomPackages {
+		pkgName := pkg
+		if strings.Contains(pkg, "@") {
+			parts := strings.Split(pkg, "@")
+			if len(parts) >= 2 {
+				pkgName = parts[0] + "@" + parts[1]
+			}
+		}
+		dependencies[pkgName] = "latest"
+	}
+
+	// Build dependencies string
+	depsStr := ""
+	for pkg, version := range dependencies {
+		depsStr += fmt.Sprintf(`    "%s": "%s",
+`, pkg, version)
+	}
+
+	devDepsStr := ""
+	for pkg, version := range devDependencies {
+		devDepsStr += fmt.Sprintf(`    "%s": "%s",
+`, pkg, version)
+	}
+
+	// Remove trailing comma
+	if len(depsStr) > 0 {
+		depsStr = depsStr[:len(depsStr)-2] + "\n"
+	}
+	if len(devDepsStr) > 0 {
+		devDepsStr = devDepsStr[:len(devDepsStr)-2] + "\n"
+	}
+
+	return fmt.Sprintf(`{
+  "name": "%s",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"%s
+  },
+  "private": true,
+  "dependencies": {
+%s  },
+  "devDependencies": {
+%s  }
+}
+`, config.ProjectName, func() string {
+		if frontendConfig.Linter.ID == "eslint" {
+			return `,
+    "lint": "ng lint"`
+		}
+		return ""
+	}(), depsStr, devDepsStr)
+}
+
+// generateAngularConfig generates angular.json
+func (g *Generator) generateAngularConfig(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "%s": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "css",
+          "skipTests": false
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist/%s",
+            "index": "src/index.html",
+            "main": "src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [
+              "src/styles.css"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "%s:build:production"
+            },
+            "development": {
+              "buildTarget": "%s:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  }
+}
+`, config.ProjectName, config.ProjectName, config.ProjectName, config.ProjectName)
+}
+
+// generateAngularTSConfig generates tsconfig.json for Angular
+func (g *Generator) generateAngularTSConfig(config metadata.ProjectConfig) string {
+	return `{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "declaration": false,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": [
+      "ES2022",
+      "dom"
+    ],
+    "skipLibCheck": true
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}
+`
+}
+
+// generateAngularTSConfigApp generates tsconfig.app.json
+func (g *Generator) generateAngularTSConfigApp(config metadata.ProjectConfig) string {
+	return `{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": []
+  },
+  "files": [
+    "src/main.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts"
+  ]
+}
+`
+}
+
+// generateAngularTSConfigSpec generates tsconfig.spec.json
+func (g *Generator) generateAngularTSConfigSpec(config metadata.ProjectConfig) string {
+	return `{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "types": [
+      "jasmine"
+    ]
+  },
+  "include": [
+    "src/**/*.spec.ts",
+    "src/**/*.d.ts"
+  ]
+}
+`
+}
+
+// generateAngularESLintConfig generates .eslintrc.json for Angular
+func (g *Generator) generateAngularESLintConfig(config metadata.ProjectConfig) string {
+	return `{
+  "root": true,
+  "ignorePatterns": [
+    "projects/**/*"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "*.ts"
+      ],
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@angular-eslint/recommended",
+        "plugin:@angular-eslint/template/process-inline-templates"
+      ],
+      "rules": {}
+    },
+    {
+      "files": [
+        "*.html"
+      ],
+      "extends": [
+        "plugin:@angular-eslint/template/recommended",
+        "plugin:@angular-eslint/template/accessibility"
+      ],
+      "rules": {}
+    }
+  ]
+}
+`
+}
+
+// generateAngularMainTS generates src/main.ts
+func (g *Generator) generateAngularMainTS(config metadata.ProjectConfig) string {
+	return `import { bootstrapApplication } from '@angular/platform-browser';
+import { AppComponent } from './app/app.component';
+import { appConfig } from './app/app.config';
+
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) => console.error(err));
+`
+}
+
+// generateAngularAppConfig generates src/app/app.config.ts
+func (g *Generator) generateAngularAppConfig(config metadata.ProjectConfig) string {
+	return `import { ApplicationConfig } from '@angular/core';
+
+export const appConfig: ApplicationConfig = {
+  providers: []
+};
+`
+}
+
+// generateAngularAppComponent generates src/app/app.component.ts
+func (g *Generator) generateAngularAppComponent(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HelloWorldComponent } from './components/hello-world.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule, HelloWorldComponent],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css'
+})
+export class AppComponent {
+  title = '%s';
+}
+`, config.ProjectName)
+}
+
+// generateAngularAppTemplate generates src/app/app.component.html
+func (g *Generator) generateAngularAppTemplate(config metadata.ProjectConfig) string {
+	return `<div class="app-container">
+  <header>
+    <h1>{{ title }}</h1>
+    <p>Welcome to your Angular application!</p>
+  </header>
+  <main>
+    <app-hello-world></app-hello-world>
+  </main>
+</div>
+`
+}
+
+// generateAngularAppStyles generates src/app/app.component.css
+func (g *Generator) generateAngularAppStyles(config metadata.ProjectConfig, hasTailwind bool) string {
+	if hasTailwind {
+		return `.app-container {
+  @apply min-h-screen p-8;
+}
+
+header {
+  @apply text-center mb-8;
+}
+
+h1 {
+  @apply text-4xl font-bold mb-4;
+}
+`
+	}
+	return `.app-container {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+`
+}
+
+// generateAngularHelloWorldComponent generates hello-world.component.ts
+func (g *Generator) generateAngularHelloWorldComponent(config metadata.ProjectConfig) string {
+	return `import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-hello-world',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './hello-world.component.html',
+  styleUrl: './hello-world.component.css'
+})
+export class HelloWorldComponent {
+  message = 'Hello, World!';
+}
+`
+}
+
+// generateAngularHelloWorldTemplate generates hello-world.component.html
+func (g *Generator) generateAngularHelloWorldTemplate(config metadata.ProjectConfig) string {
+	return `<div class="hello-world">
+  <p>{{ message }}</p>
+</div>
+`
+}
+
+// generateAngularHelloWorldStyles generates hello-world.component.css
+func (g *Generator) generateAngularHelloWorldStyles(config metadata.ProjectConfig) string {
+	return `.hello-world {
+  padding: 1rem;
+  text-align: center;
+}
+
+.hello-world p {
+  font-size: 1.25rem;
+  color: #333;
+}
+`
+}
+
+// generateAngularStyles generates src/styles.css
+func (g *Generator) generateAngularStyles(config metadata.ProjectConfig, hasTailwind bool) string {
+	if hasTailwind {
+		return `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+`
+	}
+	return `/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+`
+}
+
+// generateAngularIndexHTML generates src/index.html
+func (g *Generator) generateAngularIndexHTML(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>%s</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
+`, config.ProjectName)
+}
+
+// generateAngularREADME generates README.md for Angular
+func (g *Generator) generateAngularREADME(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`# %s
+
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.0.0.
+
+## Development server
+
+Run `+"`ng serve`"+` for a dev server. Navigate to `+"`http://localhost:4200/`"+`. The application will automatically reload if you change any of the source files.
+
+## Code scaffolding
+
+Run `+"`ng generate component component-name`"+` to generate a new component. You can also use `+"`ng generate directive|pipe|service|class|guard|interface|enum|module`"+`.
+
+## Build
+
+Run `+"`ng build`"+` to build the project. The build artifacts will be stored in the `+"`dist/`"+` directory.
+
+## Running unit tests
+
+Run `+"`ng test`"+` to execute the unit tests via [Karma](https://karma-runner.github.io).
+
+## Further help
+
+To get more help on the Angular CLI use `+"`ng help`"+` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+
+## Generated with ❤️ by go-ctl
+`, config.ProjectName)
+}
+
+// generateSolidProject generates a Solid JS project structure
+func (g *Generator) generateSolidProject(files map[string]string, config metadata.ProjectConfig, isTypeScript bool) map[string]string {
+	// Use React generator as base for now
+	// TODO: Implement full Solid JS project structure
+	return g.generateReactProject(files, config, isTypeScript)
+}
+
+// generateVueProject generates a Vue project structure
+func (g *Generator) generateVueProject(files map[string]string, config metadata.ProjectConfig, isTypeScript bool) map[string]string {
+	frontendConfig := config.FrontendConfig
+
+	// package.json
+	files["package.json"] = g.generateVuePackageJson(config, isTypeScript)
+
+	// Vite config
+	if isTypeScript {
+		files["vite.config.ts"] = g.generateVueViteConfigTS(config)
+	} else {
+		files["vite.config.js"] = g.generateVueViteConfigJS(config)
+	}
+
+	// TypeScript config
+	if isTypeScript {
+		files["tsconfig.json"] = g.generateTSConfig(config)
+		files["tsconfig.node.json"] = g.generateTSConfigNode(config)
+		files["src/env.d.ts"] = g.generateVueEnvDTS(config)
+	}
+
+	// ESLint config
+	if frontendConfig.Linter.ID == "eslint" {
+		if isTypeScript {
+			files[".eslintrc.cjs"] = g.generateESLintConfigTS(config)
+		} else {
+			files[".eslintrc.cjs"] = g.generateESLintConfigJS(config)
+		}
+	}
+
+	// Prettier config
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		files[".prettierrc"] = g.generatePrettierConfig(config)
+		files[".prettierignore"] = g.generatePrettierIgnore(config)
+	}
+
+	// Tailwind config
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		files["tailwind.config.js"] = g.generateTailwindConfig(config)
+		files["postcss.config.js"] = g.generatePostCSSConfig(config)
+	}
+
+	// index.html
+	files["index.html"] = g.generateIndexHtml(config)
+
+	// Main entry point
+	if isTypeScript {
+		files["src/main.ts"] = g.generateVueMainTS(config)
+	} else {
+		files["src/main.js"] = g.generateVueMainJS(config)
+	}
+
+	// App component
+	if isTypeScript {
+		files["src/App.vue"] = g.generateVueAppTS(config)
+	} else {
+		files["src/App.vue"] = g.generateVueAppJS(config)
+	}
+
+	// Example component
+	if isTypeScript {
+		files["src/components/HelloWorld.vue"] = g.generateVueHelloWorldTS(config)
+	} else {
+		files["src/components/HelloWorld.vue"] = g.generateVueHelloWorldJS(config)
+	}
+
+	// Assets directory
+	files["src/assets/.gitkeep"] = ""
+
+	// Styles
+	files["src/style.css"] = g.generateVueStyles(config, hasTailwind)
+
+	// .gitignore
+	files[".gitignore"] = g.generateFrontendGitignore(config)
+
+	// README
+	files["README.md"] = g.generateVueREADME(config)
+
+	return files
+}
+
+// generateVuePackageJson generates package.json for Vue
+func (g *Generator) generateVuePackageJson(config metadata.ProjectConfig, isTypeScript bool) string {
+	frontendConfig := config.FrontendConfig
+
+	dependencies := map[string]string{
+		"vue":  "^3.4.0",
+		"vite": "^5.0.0",
+	}
+
+	devDependencies := map[string]string{
+		"@vitejs/plugin-vue": "^5.0.0",
+	}
+
+	if isTypeScript {
+		devDependencies["@vue/tsconfig"] = "^0.5.0"
+		devDependencies["typescript"] = "~5.2.2"
+	}
+
+	// Add feature dependencies
+	for _, feature := range frontendConfig.Features {
+		switch feature.ID {
+		case "axios":
+			dependencies["axios"] = "^1.6.0"
+		}
+	}
+
+	// Add linter
+	if frontendConfig.Linter.ID == "eslint" {
+		devDependencies["eslint"] = "^8.54.0"
+		devDependencies["eslint-plugin-vue"] = "^9.19.0"
+		if isTypeScript {
+			devDependencies["@typescript-eslint/eslint-plugin"] = "^6.12.0"
+			devDependencies["@typescript-eslint/parser"] = "^6.12.0"
+		}
+	}
+
+	// Add Prettier
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		devDependencies["prettier"] = "^3.1.0"
+		devDependencies["eslint-config-prettier"] = "^9.0.0"
+	}
+
+	// Add Tailwind
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		devDependencies["tailwindcss"] = "^3.3.6"
+		devDependencies["postcss"] = "^8.4.32"
+		devDependencies["autoprefixer"] = "^10.4.16"
+	}
+
+	// Add custom npm packages
+	for _, pkg := range frontendConfig.CustomPackages {
+		pkgName := pkg
+		if strings.Contains(pkg, "@") {
+			parts := strings.Split(pkg, "@")
+			if len(parts) >= 2 {
+				pkgName = parts[0] + "@" + parts[1]
+			}
+		}
+		dependencies[pkgName] = "latest"
+	}
+
+	// Build dependencies string
+	depsStr := ""
+	for pkg, version := range dependencies {
+		depsStr += fmt.Sprintf(`    "%s": "%s",
+`, pkg, version)
+	}
+
+	devDepsStr := ""
+	for pkg, version := range devDependencies {
+		devDepsStr += fmt.Sprintf(`    "%s": "%s",
+`, pkg, version)
+	}
+
+	// Remove trailing comma
+	if len(depsStr) > 0 {
+		depsStr = depsStr[:len(depsStr)-2] + "\n"
+	}
+	if len(devDepsStr) > 0 {
+		devDepsStr = devDepsStr[:len(devDepsStr)-2] + "\n"
+	}
+
+	return fmt.Sprintf(`{
+  "name": "%s",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"%s
+  },
+  "dependencies": {
+%s  },
+  "devDependencies": {
+%s  }
+}
+`, config.ProjectName, func() string {
+		if frontendConfig.Linter.ID == "eslint" {
+			return `,
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"`
+		}
+		return ""
+	}(), depsStr, devDepsStr)
+}
+
+// generateVueViteConfigTS generates vite.config.ts for Vue
+func (g *Generator) generateVueViteConfigTS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue()],
+})
+`, config.ProjectName)
+}
+
+// generateVueViteConfigJS generates vite.config.js for Vue
+func (g *Generator) generateVueViteConfigJS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue()],
+})
+`, config.ProjectName)
+}
+
+// generateVueEnvDTS generates src/env.d.ts for Vue
+func (g *Generator) generateVueEnvDTS(config metadata.ProjectConfig) string {
+	return `/// <reference types="vite/client" />
+
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<{}, {}, any>
+  export default component
+}
+`
+}
+
+// generateVueMainTS generates src/main.ts for Vue
+func (g *Generator) generateVueMainTS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`import { createApp } from 'vue'
+import './style.css'
+import App from './App.vue'
+
+createApp(App).mount('#app')
+`, config.ProjectName)
+}
+
+// generateVueMainJS generates src/main.js for Vue
+func (g *Generator) generateVueMainJS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`import { createApp } from 'vue'
+import './style.css'
+import App from './App.vue'
+
+createApp(App).mount('#app')
+`, config.ProjectName)
+}
+
+// generateVueAppTS generates src/App.vue for Vue (TypeScript)
+func (g *Generator) generateVueAppTS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`<script setup lang="ts">
+import HelloWorld from './components/HelloWorld.vue'
+</script>
+
+<template>
+  <div class="app-container">
+    <header>
+      <h1>%s</h1>
+      <p>Welcome to your Vue application!</p>
+    </header>
+    <main>
+      <HelloWorld />
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.app-container {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+</style>
+`, config.ProjectName)
+}
+
+// generateVueAppJS generates src/App.vue for Vue (JavaScript)
+func (g *Generator) generateVueAppJS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`<script setup>
+import HelloWorld from './components/HelloWorld.vue'
+</script>
+
+<template>
+  <div class="app-container">
+    <header>
+      <h1>%s</h1>
+      <p>Welcome to your Vue application!</p>
+    </header>
+    <main>
+      <HelloWorld />
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.app-container {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+</style>
+`, config.ProjectName)
+}
+
+// generateVueHelloWorldTS generates src/components/HelloWorld.vue (TypeScript)
+func (g *Generator) generateVueHelloWorldTS(config metadata.ProjectConfig) string {
+	return `<script setup lang="ts">
+const message = 'Hello, World!'
+</script>
+
+<template>
+  <div class="hello-world">
+    <p>{{ message }}</p>
+  </div>
+</template>
+
+<style scoped>
+.hello-world {
+  padding: 1rem;
+  text-align: center;
+}
+
+.hello-world p {
+  font-size: 1.25rem;
+  color: #333;
+}
+</style>
+`
+}
+
+// generateVueHelloWorldJS generates src/components/HelloWorld.vue (JavaScript)
+func (g *Generator) generateVueHelloWorldJS(config metadata.ProjectConfig) string {
+	return `<script setup>
+const message = 'Hello, World!'
+</script>
+
+<template>
+  <div class="hello-world">
+    <p>{{ message }}</p>
+  </div>
+</template>
+
+<style scoped>
+.hello-world {
+  padding: 1rem;
+  text-align: center;
+}
+
+.hello-world p {
+  font-size: 1.25rem;
+  color: #333;
+}
+</style>
+`
+}
+
+// generateVueStyles generates src/style.css for Vue
+func (g *Generator) generateVueStyles(config metadata.ProjectConfig, hasTailwind bool) string {
+	if hasTailwind {
+		return `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+`
+	}
+	return `/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+`
+}
+
+// generateVueREADME generates README.md for Vue
+func (g *Generator) generateVueREADME(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`# %s
+
+This is a Vue 3 project generated with [go-ctl](https://github.com/syst3mctl/go-ctl).
+
+## Recommended IDE Setup
+
+[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+
+## Project Setup
+
+`+"```sh"+`
+npm install
+`+"```"+`
+
+### Compile and Hot-Reload for Development
+
+`+"```sh"+`
+npm run dev
+`+"```"+`
+
+### Compile and Minify for Production
+
+`+"```sh"+`
+npm run build
+`+"```"+`
+
+### Preview Production Build
+
+`+"```sh"+`
+npm run preview
+`+"```"+`
+
+## Generated with ❤️ by go-ctl
+`, config.ProjectName)
+}
+
+// generateSvelteProject generates a Svelte project structure
+func (g *Generator) generateSvelteProject(files map[string]string, config metadata.ProjectConfig, isTypeScript bool) map[string]string {
+	frontendConfig := config.FrontendConfig
+
+	// package.json
+	files["package.json"] = g.generateSveltePackageJson(config, isTypeScript)
+
+	// Vite config
+	if isTypeScript {
+		files["vite.config.ts"] = g.generateSvelteViteConfigTS(config)
+	} else {
+		files["vite.config.js"] = g.generateSvelteViteConfigJS(config)
+	}
+
+	// TypeScript config
+	if isTypeScript {
+		files["tsconfig.json"] = g.generateTSConfig(config)
+		files["tsconfig.node.json"] = g.generateTSConfigNode(config)
+		files["src/app.d.ts"] = g.generateSvelteAppDTS(config)
+	}
+
+	// ESLint config
+	if frontendConfig.Linter.ID == "eslint" {
+		if isTypeScript {
+			files[".eslintrc.cjs"] = g.generateESLintConfigTS(config)
+		} else {
+			files[".eslintrc.cjs"] = g.generateESLintConfigJS(config)
+		}
+	}
+
+	// Prettier config
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		files[".prettierrc"] = g.generatePrettierConfig(config)
+		files[".prettierignore"] = g.generatePrettierIgnore(config)
+	}
+
+	// Tailwind config
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		files["tailwind.config.js"] = g.generateTailwindConfig(config)
+		files["postcss.config.js"] = g.generatePostCSSConfig(config)
+	}
+
+	// index.html
+	files["index.html"] = g.generateIndexHtml(config)
+
+	// Main entry point
+	if isTypeScript {
+		files["src/main.ts"] = g.generateSvelteMainTS(config)
+	} else {
+		files["src/main.js"] = g.generateSvelteMainJS(config)
+	}
+
+	// App component
+	if isTypeScript {
+		files["src/App.svelte"] = g.generateSvelteAppTS(config)
+	} else {
+		files["src/App.svelte"] = g.generateSvelteAppJS(config)
+	}
+
+	// Example component
+	if isTypeScript {
+		files["src/components/HelloWorld.svelte"] = g.generateSvelteHelloWorldTS(config)
+	} else {
+		files["src/components/HelloWorld.svelte"] = g.generateSvelteHelloWorldJS(config)
+	}
+
+	// Assets directory
+	files["src/assets/.gitkeep"] = ""
+
+	// Styles
+	files["src/app.css"] = g.generateSvelteStyles(config, hasTailwind)
+
+	// .gitignore
+	files[".gitignore"] = g.generateFrontendGitignore(config)
+
+	// README
+	files["README.md"] = g.generateSvelteREADME(config)
+
+	return files
+}
+
+// generateSveltePackageJson generates package.json for Svelte
+func (g *Generator) generateSveltePackageJson(config metadata.ProjectConfig, isTypeScript bool) string {
+	frontendConfig := config.FrontendConfig
+
+	dependencies := map[string]string{
+		"svelte": "^4.2.0",
+		"vite":   "^5.0.0",
+	}
+
+	devDependencies := map[string]string{
+		"@sveltejs/vite-plugin-svelte": "^3.0.0",
+	}
+
+	if isTypeScript {
+		devDependencies["typescript"] = "~5.2.2"
+		devDependencies["@tsconfig/svelte"] = "^5.0.0"
+		devDependencies["svelte-check"] = "^3.6.0"
+	}
+
+	// Add feature dependencies
+	for _, feature := range frontendConfig.Features {
+		switch feature.ID {
+		case "axios":
+			dependencies["axios"] = "^1.6.0"
+		}
+	}
+
+	// Add linter
+	if frontendConfig.Linter.ID == "eslint" {
+		devDependencies["eslint"] = "^8.54.0"
+		devDependencies["eslint-plugin-svelte"] = "^2.35.0"
+		if isTypeScript {
+			devDependencies["@typescript-eslint/eslint-plugin"] = "^6.12.0"
+			devDependencies["@typescript-eslint/parser"] = "^6.12.0"
+		}
+	}
+
+	// Add Prettier
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		devDependencies["prettier"] = "^3.1.0"
+		devDependencies["prettier-plugin-svelte"] = "^3.1.0"
+		devDependencies["eslint-config-prettier"] = "^9.0.0"
+	}
+
+	// Add Tailwind
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		devDependencies["tailwindcss"] = "^3.3.6"
+		devDependencies["postcss"] = "^8.4.32"
+		devDependencies["autoprefixer"] = "^10.4.16"
+	}
+
+	// Add custom npm packages
+	for _, pkg := range frontendConfig.CustomPackages {
+		pkgName := pkg
+		if strings.Contains(pkg, "@") {
+			parts := strings.Split(pkg, "@")
+			if len(parts) >= 2 {
+				pkgName = parts[0] + "@" + parts[1]
+			}
+		}
+		dependencies[pkgName] = "latest"
+	}
+
+	// Build dependencies string
+	depsStr := ""
+	for pkg, version := range dependencies {
+		depsStr += fmt.Sprintf(`    "%s": "%s",
+`, pkg, version)
+	}
+
+	devDepsStr := ""
+	for pkg, version := range devDependencies {
+		devDepsStr += fmt.Sprintf(`    "%s": "%s",
+`, pkg, version)
+	}
+
+	// Remove trailing comma
+	if len(depsStr) > 0 {
+		depsStr = depsStr[:len(depsStr)-2] + "\n"
+	}
+	if len(devDepsStr) > 0 {
+		devDepsStr = devDepsStr[:len(devDepsStr)-2] + "\n"
+	}
+
+	return fmt.Sprintf(`{
+  "name": "%s",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview"%s%s
+  },
+  "dependencies": {
+%s  },
+  "devDependencies": {
+%s  }
+}
+`, config.ProjectName, func() string {
+		if frontendConfig.Linter.ID == "eslint" {
+			return `,
+    "lint": "eslint . --fix"`
+		}
+		return ""
+	}(), func() string {
+		if isTypeScript {
+			return `,
+    "check": "svelte-check --tsconfig ./tsconfig.json"`
+		}
+		return ""
+	}(), depsStr, devDepsStr)
+}
+
+// generateSvelteViteConfigTS generates vite.config.ts for Svelte
+func (g *Generator) generateSvelteViteConfigTS(config metadata.ProjectConfig) string {
+	return `import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [svelte()],
+})
+`
+}
+
+// generateSvelteViteConfigJS generates vite.config.js for Svelte
+func (g *Generator) generateSvelteViteConfigJS(config metadata.ProjectConfig) string {
+	return `import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [svelte()],
+})
+`
+}
+
+// generateSvelteAppDTS generates src/app.d.ts for Svelte
+func (g *Generator) generateSvelteAppDTS(config metadata.ProjectConfig) string {
+	return `// See https://kit.svelte.dev/docs/types#app
+// for information about these interfaces
+declare global {
+	namespace App {
+		// interface Error {}
+		// interface Locals {}
+		// interface PageData {}
+		// interface Platform {}
+	}
+}
+
+export {};
+`
+}
+
+// generateSvelteMainTS generates src/main.ts for Svelte
+func (g *Generator) generateSvelteMainTS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`import './app.css'
+import App from './App.svelte'
+
+const app = new App({
+  target: document.getElementById('app')!,
+})
+
+export default app
+`, config.ProjectName)
+}
+
+// generateSvelteMainJS generates src/main.js for Svelte
+func (g *Generator) generateSvelteMainJS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`import './app.css'
+import App from './App.svelte'
+
+const app = new App({
+  target: document.getElementById('app'),
+})
+
+export default app
+`, config.ProjectName)
+}
+
+// generateSvelteAppTS generates src/App.svelte for Svelte (TypeScript)
+func (g *Generator) generateSvelteAppTS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`<script lang="ts">
+  import HelloWorld from './components/HelloWorld.svelte'
+</script>
+
+<main>
+  <div class="app-container">
+    <header>
+      <h1>%s</h1>
+      <p>Welcome to your Svelte application!</p>
+    </header>
+    <HelloWorld />
+  </div>
+</main>
+
+<style>
+  .app-container {
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+</style>
+`, config.ProjectName)
+}
+
+// generateSvelteAppJS generates src/App.svelte for Svelte (JavaScript)
+func (g *Generator) generateSvelteAppJS(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`<script>
+  import HelloWorld from './components/HelloWorld.svelte'
+</script>
+
+<main>
+  <div class="app-container">
+    <header>
+      <h1>%s</h1>
+      <p>Welcome to your Svelte application!</p>
+    </header>
+    <HelloWorld />
+  </div>
+</main>
+
+<style>
+  .app-container {
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+</style>
+`, config.ProjectName)
+}
+
+// generateSvelteHelloWorldTS generates src/components/HelloWorld.svelte (TypeScript)
+func (g *Generator) generateSvelteHelloWorldTS(config metadata.ProjectConfig) string {
+	return `<script lang="ts">
+  let message = 'Hello, World!'
+</script>
+
+<div class="hello-world">
+  <p>{message}</p>
+</div>
+
+<style>
+  .hello-world {
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .hello-world p {
+    font-size: 1.25rem;
+    color: #333;
+  }
+</style>
+`
+}
+
+// generateSvelteHelloWorldJS generates src/components/HelloWorld.svelte (JavaScript)
+func (g *Generator) generateSvelteHelloWorldJS(config metadata.ProjectConfig) string {
+	return `<script>
+  let message = 'Hello, World!'
+</script>
+
+<div class="hello-world">
+  <p>{message}</p>
+</div>
+
+<style>
+  .hello-world {
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .hello-world p {
+    font-size: 1.25rem;
+    color: #333;
+  }
+</style>
+`
+}
+
+// generateSvelteStyles generates src/app.css for Svelte
+func (g *Generator) generateSvelteStyles(config metadata.ProjectConfig, hasTailwind bool) string {
+	if hasTailwind {
+		return `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+`
+	}
+	return `/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+`
+}
+
+// generateSvelteREADME generates README.md for Svelte
+func (g *Generator) generateSvelteREADME(config metadata.ProjectConfig) string {
+	return fmt.Sprintf(`# %s
+
+This is a Svelte project generated with [go-ctl](https://github.com/syst3mctl/go-ctl).
+
+## Get started
+
+Install the dependencies...
+
+`+"```bash"+`
+npm install
+`+"```"+`
+
+...then start [Vite](https://vitejs.dev):
+
+`+"```bash"+`
+npm run dev
+`+"```"+`
+
+Navigate to [localhost:5173](http://localhost:5173). You should see your app running. Edit a component file in `+"`src`"+`, save it, and the page will reload.
+
+## Building and previewing the production build
+
+If you've already installed the dependencies with `+"`npm install`"+`, skip ahead. If not, run:
+
+`+"```bash"+`
+npm install
+`+"```"+`
+
+To create a production version of your app:
+
+`+"```bash"+`
+npm run build
+`+"```"+`
+
+You can preview the production build with:
+
+`+"```bash"+`
+npm run preview
+`+"```"+`
+
+## Generated with ❤️ by go-ctl
+`, config.ProjectName)
+}

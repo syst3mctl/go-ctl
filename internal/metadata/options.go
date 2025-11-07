@@ -27,10 +27,11 @@ type ProjectOptions struct {
 
 // FrontendOptions contains all available front-end options
 type FrontendOptions struct {
-	Languages []Option `json:"languages"`
+	Frameworks []Option `json:"frameworks"`
+	Languages  []Option `json:"languages"`
 	BuildTools []Option `json:"buildTools"`
-	Linters   []Option `json:"linters"`
-	Features  []Option `json:"features"`
+	Linters    []Option `json:"linters"`
+	Features   []Option `json:"features"`
 }
 
 // DatabaseSelection represents a database with its selected driver
@@ -53,10 +54,11 @@ type ProjectConfig struct {
 
 // FrontendConfig represents the front-end project configuration
 type FrontendConfig struct {
-	Language      Option   `json:"language"`      // JavaScript or TypeScript
-	BuildTool     Option   `json:"buildTool"`    // Vite
-	Linter        Option   `json:"linter"`        // ESLint
-	Features      []Option `json:"features"`     // Prettier, React Router, Tailwind, etc.
+	Framework     Option   `json:"framework"`      // React, Angular, Solid JS, Vue, Svelte
+	Language      Option   `json:"language"`        // JavaScript or TypeScript (optional, depends on framework)
+	BuildTool     Option   `json:"buildTool"`     // Vite
+	Linter        Option   `json:"linter"`         // ESLint
+	Features      []Option `json:"features"`       // Prettier, React Router, Tailwind, etc.
 	CustomPackages []string `json:"customPackages"` // npm packages
 }
 
@@ -129,8 +131,17 @@ func ValidateConfig(config ProjectConfig) []string {
 		if config.FrontendConfig == nil {
 			warnings = append(warnings, "Frontend configuration is required for frontend projects.")
 		} else {
-			if config.FrontendConfig.Language.ID == "" {
+			if config.FrontendConfig.Framework.ID == "" {
+				warnings = append(warnings, "Frontend framework must be selected.")
+			}
+			// Language is required for frameworks that support language choice
+			// Angular always uses TypeScript, so language is not required for Angular
+			if config.FrontendConfig.Framework.ID != "angular" && config.FrontendConfig.Language.ID == "" {
 				warnings = append(warnings, "Frontend language must be selected.")
+			}
+			// For Angular, ensure TypeScript is set (even if not explicitly selected)
+			if config.FrontendConfig.Framework.ID == "angular" && config.FrontendConfig.Language.ID == "" {
+				config.FrontendConfig.Language = Option{ID: "typescript", Name: "TypeScript"}
 			}
 			if config.FrontendConfig.BuildTool.ID == "" {
 				warnings = append(warnings, "Build tool must be selected.")

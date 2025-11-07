@@ -289,6 +289,38 @@ const indexTemplate = `<!DOCTYPE html>
             color: #e0e0e0 !important;
         }
         
+        /* Frontend Framework options - unselected state */
+        .frontend-framework-option {
+            background-color: #252525 !important;
+            border: 2px solid #11A32B !important;
+        }
+        
+        .frontend-framework-option:hover {
+            background-color: #2d2d2d !important;
+        }
+        
+        /* Frontend Framework options - selected state */
+        input[type="radio"]:checked + label.frontend-framework-option,
+        .frontend-framework-option.selected {
+            background-color: #11A32B !important;
+            border-color: #11A32B !important;
+        }
+        
+        input[type="radio"]:checked + label.frontend-framework-option .font-semibold,
+        .frontend-framework-option.selected .font-semibold {
+            color: #ffffff !important;
+        }
+        
+        input[type="radio"]:checked + label.frontend-framework-option .text-sm,
+        .frontend-framework-option.selected .text-sm {
+            color: #e0e0e0 !important;
+        }
+        
+        input[type="radio"]:checked + label.frontend-framework-option .fas,
+        .frontend-framework-option.selected .fas {
+            color: #ffffff !important;
+        }
+        
         /* Radio button labels - selected state (more visible) */
         .peer-checked\:bg-blue-50 {
             background-color: #11A32B !important;
@@ -599,8 +631,40 @@ const indexTemplate = `<!DOCTYPE html>
                                    required>
                         </div>
 
-                        <!-- Language Selection -->
+                        <!-- Framework Selection -->
                         <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                <i class="fab fa-react mr-1"></i>Framework
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {{if .Options.Frontend}}
+                                {{range .Options.Frontend.Frameworks}}
+                                <div class="relative">
+                                    <input type="radio"
+                                           name="frontendFramework"
+                                           value="{{.ID}}"
+                                           id="framework-{{.ID}}"
+                                           {{if eq .ID "react"}}checked{{end}}
+                                           class="sr-only peer">
+                                    <label for="framework-{{.ID}}"
+                                           class="flex p-3 rounded-lg cursor-pointer transition-all duration-200 frontend-framework-option"
+                                           style="background-color: #252525; border: 2px solid #11A32B;">
+                                        <div class="flex-1">
+                                            <div class="font-semibold" style="color: #ffffff;">{{.Name}}</div>
+                                            <div class="text-sm" style="color: #b0b0b0;">{{.Description}}</div>
+                                        </div>
+                                        <div class="flex-shrink-0 ml-2">
+                                            <i class="fas fa-check-circle opacity-0 peer-checked:opacity-100" style="color: #ffffff;"></i>
+                                        </div>
+                                    </label>
+                                </div>
+                                {{end}}
+                                {{end}}
+                            </div>
+                        </div>
+
+                        <!-- Language Selection (conditional) -->
+                        <div id="language-selection" class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-3">
                                 <i class="fas fa-code mr-1"></i>Language
                             </label>
@@ -875,6 +939,33 @@ const indexTemplate = `<!DOCTYPE html>
             document.getElementById('projectType').value = tabName;
         }
 
+        // Framework change handler - shows/hides language selection
+        function handleFrameworkChange(frameworkId) {
+            const languageSelection = document.getElementById('language-selection');
+            const languageInputs = document.querySelectorAll('input[name="frontendLanguage"]');
+            
+            // Angular always uses TypeScript, so hide language selection
+            if (frameworkId === 'angular') {
+                languageSelection.style.display = 'none';
+                // Set TypeScript as the language (hidden)
+                const typescriptInput = document.getElementById('lang-typescript');
+                if (typescriptInput) {
+                    typescriptInput.checked = true;
+                }
+            } else {
+                // Show language selection for other frameworks
+                languageSelection.style.display = 'block';
+            }
+        }
+
+        // Initialize language selection visibility on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectedFramework = document.querySelector('input[name="frontendFramework"]:checked');
+            if (selectedFramework) {
+                handleFrameworkChange(selectedFramework.value);
+            }
+        });
+
         // Database driver selection functions
         function updateDriverOptions() {
             const databaseCheckboxes = document.querySelectorAll('input[name="databases"]:checked');
@@ -994,6 +1085,31 @@ const indexTemplate = `<!DOCTYPE html>
             
             // Set initial state
             updateHttpFrameworkSelection();
+            
+            // Handle Frontend Framework selection
+            function updateFrontendFrameworkSelection() {
+                document.querySelectorAll('input[name="frontendFramework"]').forEach(radio => {
+                    const label = document.querySelector('label[for="' + radio.id + '"]');
+                    if (label && label.classList.contains('frontend-framework-option')) {
+                        if (radio.checked) {
+                            label.classList.add('selected');
+                        } else {
+                            label.classList.remove('selected');
+                        }
+                    }
+                });
+            }
+            
+            // Add event listeners to Frontend framework radio buttons
+            document.querySelectorAll('input[name="frontendFramework"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    updateFrontendFrameworkSelection();
+                    handleFrameworkChange(radio.value);
+                });
+            });
+            
+            // Set initial state
+            updateFrontendFrameworkSelection();
         });
         // File tree and explorer functions
         // Initialize file tree - expand root folders automatically
@@ -1136,8 +1252,12 @@ const indexTemplate = `<!DOCTYPE html>
             params.append('projectType', projectType);
             
             if (projectType === 'frontend') {
+                const framework = formData.get('frontendFramework') || 'react';
                 params.append('frontendProjectName', formData.get('frontendProjectName') || 'my-react-app');
-                params.append('frontendLanguage', formData.get('frontendLanguage') || 'typescript');
+                params.append('frontendFramework', framework);
+                // For Angular, always use TypeScript; otherwise use selected language or default to TypeScript
+                const language = framework === 'angular' ? 'typescript' : (formData.get('frontendLanguage') || 'typescript');
+                params.append('frontendLanguage', language);
                 params.append('frontendBuildTool', formData.get('frontendBuildTool') || 'vite');
                 params.append('frontendLinter', formData.get('frontendLinter') || 'eslint');
             } else {

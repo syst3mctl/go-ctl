@@ -201,6 +201,43 @@
     }
   ],
   "frontend": {
+    "frameworks": [
+      {
+        "id": "react",
+        "name": "React",
+        "description": "A JavaScript library for building user interfaces",
+        "importPath": "",
+        "supportsLanguageChoice": true
+      },
+      {
+        "id": "angular",
+        "name": "Angular",
+        "description": "A platform and framework for building single-page client applications",
+        "importPath": "",
+        "supportsLanguageChoice": false
+      },
+      {
+        "id": "solid",
+        "name": "Solid JS",
+        "description": "A declarative JavaScript library for creating user interfaces",
+        "importPath": "",
+        "supportsLanguageChoice": true
+      },
+      {
+        "id": "vue",
+        "name": "Vue",
+        "description": "A progressive JavaScript framework for building user interfaces",
+        "importPath": "",
+        "supportsLanguageChoice": true
+      },
+      {
+        "id": "svelte",
+        "name": "Svelte",
+        "description": "A radical new approach to building user interfaces",
+        "importPath": "",
+        "supportsLanguageChoice": true
+      }
+    ],
     "languages": [
       {
         "id": "javascript",
@@ -211,7 +248,7 @@
       {
         "id": "typescript",
         "name": "TypeScript",
-        "description": "TypeScript for type-safe React development",
+        "description": "TypeScript for type-safe development",
         "importPath": ""
       }
     ],

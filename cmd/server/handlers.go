@@ -232,8 +232,24 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 
 	if projectType == "frontend" {
 		// Build frontend configuration
+		frameworkID := r.FormValue("frontendFramework")
+		if frameworkID == "" {
+			frameworkID = "react" // Default to React
+		}
+		framework := metadata.FindOption(appOptions.Frontend.Frameworks, frameworkID)
+
+		// Determine language: Angular always uses TypeScript
+		languageID := r.FormValue("frontendLanguage")
+		if frameworkID == "angular" {
+			languageID = "typescript" // Angular always uses TypeScript
+		} else if languageID == "" {
+			languageID = "typescript" // Default to TypeScript for other frameworks
+		}
+		language := metadata.FindOption(appOptions.Frontend.Languages, languageID)
+
 		frontendConfig := &metadata.FrontendConfig{
-			Language:       metadata.FindOption(appOptions.Frontend.Languages, r.FormValue("frontendLanguage")),
+			Framework:      framework,
+			Language:       language,
 			BuildTool:      metadata.FindOption(appOptions.Frontend.BuildTools, r.FormValue("frontendBuildTool")),
 			Linter:         metadata.Option{ID: "eslint", Name: "ESLint"},
 			Features:       metadata.FindOptions(appOptions.Frontend.Features, r.Form["frontendFeatures"]),
@@ -343,8 +359,24 @@ func handleExplore(w http.ResponseWriter, r *http.Request) {
 
 	if projectType == "frontend" {
 		// Build frontend configuration
+		frameworkID := r.FormValue("frontendFramework")
+		if frameworkID == "" {
+			frameworkID = "react" // Default to React
+		}
+		framework := metadata.FindOption(appOptions.Frontend.Frameworks, frameworkID)
+
+		// Determine language: Angular always uses TypeScript
+		languageID := r.FormValue("frontendLanguage")
+		if frameworkID == "angular" {
+			languageID = "typescript" // Angular always uses TypeScript
+		} else if languageID == "" {
+			languageID = "typescript" // Default to TypeScript for other frameworks
+		}
+		language := metadata.FindOption(appOptions.Frontend.Languages, languageID)
+
 		frontendConfig := &metadata.FrontendConfig{
-			Language:       metadata.FindOption(appOptions.Frontend.Languages, r.FormValue("frontendLanguage")),
+			Framework:      framework,
+			Language:       language,
 			BuildTool:      metadata.FindOption(appOptions.Frontend.BuildTools, r.FormValue("frontendBuildTool")),
 			Linter:         metadata.Option{ID: "eslint", Name: "ESLint"},
 			Features:       []metadata.Option{},
@@ -958,8 +990,21 @@ func handleFileContent(w http.ResponseWriter, r *http.Request) {
 
 	if projectType == "frontend" {
 		// Build frontend configuration
+		frameworkID := getQueryParam(r, "frontendFramework", "react")
+		framework := metadata.FindOption(appOptions.Frontend.Frameworks, frameworkID)
+
+		// Determine language: Angular always uses TypeScript
+		languageID := getQueryParam(r, "frontendLanguage", "")
+		if frameworkID == "angular" {
+			languageID = "typescript" // Angular always uses TypeScript
+		} else if languageID == "" {
+			languageID = "typescript" // Default to TypeScript for other frameworks
+		}
+		language := metadata.FindOption(appOptions.Frontend.Languages, languageID)
+
 		frontendConfig := &metadata.FrontendConfig{
-			Language:       metadata.FindOption(appOptions.Frontend.Languages, getQueryParam(r, "frontendLanguage", "typescript")),
+			Framework:      framework,
+			Language:       language,
 			BuildTool:      metadata.FindOption(appOptions.Frontend.BuildTools, getQueryParam(r, "frontendBuildTool", "vite")),
 			Linter:         metadata.Option{ID: "eslint", Name: "ESLint"},
 			Features:       []metadata.Option{},
@@ -1184,14 +1229,38 @@ func generateFileItems(config metadata.ProjectConfig) []FileItem {
 	return generateNetHTTPRawSQLFileItems(config)
 }
 
-// generateFrontendFileItems creates file items for React projects
+// generateFrontendFileItems creates file items for frontend projects (React, Angular, Vue, Svelte, Solid JS)
 func generateFrontendFileItems(config metadata.ProjectConfig) []FileItem {
 	if config.FrontendConfig == nil {
 		return []FileItem{}
 	}
 
 	frontendConfig := config.FrontendConfig
+	frameworkID := frontendConfig.Framework.ID
+	if frameworkID == "" {
+		frameworkID = "react" // Default to React
+	}
 	isTypeScript := frontendConfig.Language.ID == "typescript"
+
+	// Generate framework-specific file structure
+	switch frameworkID {
+	case "angular":
+		return generateAngularFileItems(config, isTypeScript)
+	case "vue":
+		return generateVueFileItems(config, isTypeScript)
+	case "svelte":
+		return generateSvelteFileItems(config, isTypeScript)
+	case "solid":
+		return generateSolidFileItems(config, isTypeScript)
+	default:
+		// React (default)
+		return generateReactFileItems(config, isTypeScript)
+	}
+}
+
+// generateReactFileItems creates file items for React projects
+func generateReactFileItems(config metadata.ProjectConfig, isTypeScript bool) []FileItem {
+	frontendConfig := config.FrontendConfig
 	ext := ".jsx"
 	if isTypeScript {
 		ext = ".tsx"
@@ -1356,6 +1425,375 @@ func generateFrontendFileItems(config metadata.ProjectConfig) []FileItem {
 	}
 
 	return buildFileTree(filePaths)
+}
+
+// generateAngularFileItems creates file items for Angular projects
+func generateAngularFileItems(config metadata.ProjectConfig, isTypeScript bool) []FileItem {
+	frontendConfig := config.FrontendConfig
+
+	filePaths := []struct {
+		Path string
+		Icon string
+	}{
+		{"package.json", "fab fa-node-js text-green-600"},
+		{"angular.json", "fab fa-angular text-red-500"},
+		{"tsconfig.json", "fab fa-js text-blue-600"},
+		{"tsconfig.app.json", "fab fa-js text-blue-600"},
+		{"tsconfig.spec.json", "fab fa-js text-blue-600"},
+		{"src/index.html", "fab fa-html5 text-orange-500"},
+		{".gitignore", "fab fa-git-alt text-orange-500"},
+		{"README.md", "fab fa-markdown text-blue-600"},
+	}
+
+	// ESLint config
+	if frontendConfig.Linter.ID == "eslint" {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{".eslintrc.json", "fas fa-check-circle text-green-500"})
+	}
+
+	// Prettier config
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{".prettierrc", "fas fa-code text-purple-500"},
+			struct {
+				Path string
+				Icon string
+			}{".prettierignore", "fas fa-code text-purple-500"},
+		)
+	}
+
+	// Tailwind config
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"tailwind.config.js", "fas fa-palette text-cyan-500"},
+			struct {
+				Path string
+				Icon string
+			}{"postcss.config.js", "fas fa-cog text-gray-500"},
+		)
+	}
+
+	// Angular source files
+	filePaths = append(filePaths,
+		struct {
+			Path string
+			Icon string
+		}{"src/main.ts", "fab fa-angular text-red-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app/app.config.ts", "fab fa-angular text-red-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app/app.component.ts", "fab fa-angular text-red-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app/app.component.html", "fab fa-html5 text-orange-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app/app.component.css", "fab fa-css3-alt text-blue-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app/components/hello-world.component.ts", "fab fa-angular text-red-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app/components/hello-world.component.html", "fab fa-html5 text-orange-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app/components/hello-world.component.css", "fab fa-css3-alt text-blue-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/styles.css", "fab fa-css3-alt text-blue-500"},
+	)
+
+	return buildFileTree(filePaths)
+}
+
+// generateVueFileItems creates file items for Vue projects
+func generateVueFileItems(config metadata.ProjectConfig, isTypeScript bool) []FileItem {
+	frontendConfig := config.FrontendConfig
+
+	filePaths := []struct {
+		Path string
+		Icon string
+	}{
+		{"package.json", "fab fa-node-js text-green-600"},
+		{"index.html", "fab fa-html5 text-orange-500"},
+		{".gitignore", "fab fa-git-alt text-orange-500"},
+		{"README.md", "fab fa-markdown text-blue-600"},
+	}
+
+	// Vite config
+	if isTypeScript {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{"vite.config.ts", "fas fa-cog text-blue-500"})
+	} else {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{"vite.config.js", "fas fa-cog text-blue-500"})
+	}
+
+	// TypeScript config files
+	if isTypeScript {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"tsconfig.json", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"tsconfig.node.json", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/env.d.ts", "fab fa-js text-blue-600"},
+		)
+	}
+
+	// ESLint config
+	if frontendConfig.Linter.ID == "eslint" {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{".eslintrc.cjs", "fas fa-check-circle text-green-500"})
+	}
+
+	// Prettier config
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{".prettierrc", "fas fa-code text-purple-500"},
+			struct {
+				Path string
+				Icon string
+			}{".prettierignore", "fas fa-code text-purple-500"},
+		)
+	}
+
+	// Tailwind config
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"tailwind.config.js", "fas fa-palette text-cyan-500"},
+			struct {
+				Path string
+				Icon string
+			}{"postcss.config.js", "fas fa-cog text-gray-500"},
+		)
+	}
+
+	// Vue source files
+	mainExt := ".js"
+	if isTypeScript {
+		mainExt = ".ts"
+	}
+	filePaths = append(filePaths,
+		struct {
+			Path string
+			Icon string
+		}{fmt.Sprintf("src/main%s", mainExt), "fab fa-vuejs text-green-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/App.vue", "fab fa-vuejs text-green-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/components/HelloWorld.vue", "fab fa-vuejs text-green-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/assets/.gitkeep", "fas fa-folder text-yellow-600"},
+		struct {
+			Path string
+			Icon string
+		}{"src/style.css", "fab fa-css3-alt text-blue-500"},
+	)
+
+	return buildFileTree(filePaths)
+}
+
+// generateSvelteFileItems creates file items for Svelte projects
+func generateSvelteFileItems(config metadata.ProjectConfig, isTypeScript bool) []FileItem {
+	frontendConfig := config.FrontendConfig
+
+	filePaths := []struct {
+		Path string
+		Icon string
+	}{
+		{"package.json", "fab fa-node-js text-green-600"},
+		{"index.html", "fab fa-html5 text-orange-500"},
+		{".gitignore", "fab fa-git-alt text-orange-500"},
+		{"README.md", "fab fa-markdown text-blue-600"},
+	}
+
+	// Vite config
+	if isTypeScript {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{"vite.config.ts", "fas fa-cog text-blue-500"})
+	} else {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{"vite.config.js", "fas fa-cog text-blue-500"})
+	}
+
+	// TypeScript config files
+	if isTypeScript {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"tsconfig.json", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"tsconfig.node.json", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/app.d.ts", "fab fa-js text-blue-600"},
+		)
+	}
+
+	// ESLint config
+	if frontendConfig.Linter.ID == "eslint" {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{".eslintrc.cjs", "fas fa-check-circle text-green-500"})
+	}
+
+	// Prettier config
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{".prettierrc", "fas fa-code text-purple-500"},
+			struct {
+				Path string
+				Icon string
+			}{".prettierignore", "fas fa-code text-purple-500"},
+		)
+	}
+
+	// Tailwind config
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"tailwind.config.js", "fas fa-palette text-cyan-500"},
+			struct {
+				Path string
+				Icon string
+			}{"postcss.config.js", "fas fa-cog text-gray-500"},
+		)
+	}
+
+	// Svelte source files
+	mainExt := ".js"
+	if isTypeScript {
+		mainExt = ".ts"
+	}
+	filePaths = append(filePaths,
+		struct {
+			Path string
+			Icon string
+		}{fmt.Sprintf("src/main%s", mainExt), "fab fa-svelte text-orange-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/App.svelte", "fab fa-svelte text-orange-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/components/HelloWorld.svelte", "fab fa-svelte text-orange-500"},
+		struct {
+			Path string
+			Icon string
+		}{"src/assets/.gitkeep", "fas fa-folder text-yellow-600"},
+		struct {
+			Path string
+			Icon string
+		}{"src/app.css", "fab fa-css3-alt text-blue-500"},
+	)
+
+	return buildFileTree(filePaths)
+}
+
+// generateSolidFileItems creates file items for Solid JS projects (uses React structure)
+func generateSolidFileItems(config metadata.ProjectConfig, isTypeScript bool) []FileItem {
+	// Solid JS uses similar structure to React
+	return generateReactFileItems(config, isTypeScript)
 }
 
 // generateNetHTTPRawSQLFileItems creates file items for net/http + raw SQL pattern
