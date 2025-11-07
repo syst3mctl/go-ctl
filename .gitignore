@@ -180,6 +180,9 @@ bench.txt
 *.sqlite
 *.sqlite3
 
+# Analytics database directory
+data/
+
 # Configuration overrides
 config.local.json
 config.local.yaml

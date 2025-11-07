@@ -10,6 +10,7 @@ import (
 
 	"github.com/syst3mctl/go-ctl/internal/generator"
 	"github.com/syst3mctl/go-ctl/internal/metadata"
+	"github.com/syst3mctl/go-ctl/internal/storage"
 )
 
 var (
@@ -31,13 +32,22 @@ func main() {
 		log.Fatal("Failed to load templates:", err)
 	}
 
+	// Initialize analytics database
+	if err := storage.InitAnalyticsDB(); err != nil {
+		log.Printf("Warning: Failed to initialize analytics database: %v", err)
+		log.Println("Analytics tracking will be disabled")
+	}
+
 	// Setup HTTP routes
-	http.HandleFunc("/", handleIndex)
+	http.HandleFunc("/", handleLanding)           // Landing page
+	http.HandleFunc("/generator", handleIndex)    // Project generator interface
 	http.HandleFunc("/generate", handleGenerate)
 	http.HandleFunc("/explore", handleExplore)
 	http.HandleFunc("/search-packages", handleSearchPackages) // Legacy endpoint
 	http.HandleFunc("/fetch-packages", handleFetchPackages)   // New dynamic endpoint
 	http.HandleFunc("/add-package", handleAddPackage)
+	http.HandleFunc("/search-npm-packages", handleSearchNpmPackages) // npm package search
+	http.HandleFunc("/add-npm-package", handleAddNpmPackage)         // Add npm package
 	http.HandleFunc("/file-content", handleFileContent)
 
 	// Serve static files
@@ -52,12 +62,15 @@ func main() {
 	// Start server
 	fmt.Printf("🚀 go-ctl server starting on http://localhost:%s\n", port)
 	fmt.Println("📋 Available endpoints:")
-	fmt.Println("   GET  /              - Main project generator interface")
-	fmt.Println("   POST /generate        - Generate and download project ZIP")
+	fmt.Println("   GET  /              - Landing page")
+	fmt.Println("   GET  /generator      - Project generator interface")
+	fmt.Println("   POST /generate       - Generate and download project ZIP")
 	fmt.Println("   POST /explore         - Preview project structure")
 	fmt.Println("   GET  /search-packages - Search pkg.go.dev for packages (legacy)")
 	fmt.Println("   GET  /fetch-packages  - Dynamic package search API (supports JSON & HTML)")
 	fmt.Println("   POST /add-package     - Add package to selection")
+	fmt.Println("   GET  /search-npm-packages - Search npm registry for packages")
+	fmt.Println("   POST /add-npm-package - Add npm package to selection")
 	fmt.Println("   GET  /file-content    - Get individual file content for preview")
 
 	// Create server

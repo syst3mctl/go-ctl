@@ -5,14 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"test-app/internal/config"
-
 	"gorm.io/gorm"
 	"gorm.io/driver/postgres"
 )
 
+// Config interface for database configuration
+// This is a placeholder - actual config should be provided by the application
+type Config interface {
+	PostgresDSN() string
+	MySQLDSN() string
+	SQLiteDSN() string
+}
+
 // InitDatabase initializes database connection using GORM
-func InitDatabase(cfg *config.Config) (*gorm.DB, error) {
+func InitDatabase(cfg Config) (*gorm.DB, error) {
 	dsn := cfg.PostgresDSN()
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		NowFunc: func() time.Time {

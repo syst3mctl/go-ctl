@@ -220,6 +220,25 @@ func (g *Generator) GenerateProjectZip(config metadata.ProjectConfig, w io.Write
 	return nil
 }
 
+// GenerateReactProjectZip generates a React project ZIP file
+func (g *Generator) GenerateReactProjectZip(config metadata.ProjectConfig, w io.Writer) error {
+	// Create a new ZIP archive
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
+
+	// Generate React project structure
+	projectStructure := g.GenerateReactProject(config)
+
+	// Generate each file in the project structure
+	for filePath, content := range projectStructure {
+		if err := g.addFileToZip(zipWriter, filePath, content); err != nil {
+			return fmt.Errorf("failed to add file %s to zip: %w", filePath, err)
+		}
+	}
+
+	return nil
+}
+
 // isNetHTTPRawSQLPattern checks if the configuration uses net/http with database/sql
 func (g *Generator) isNetHTTPRawSQLPattern(config metadata.ProjectConfig) bool {
 	if config.HttpPackage.ID != "net-http" {

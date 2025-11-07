@@ -5,7 +5,10 @@ const indexTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>go-ctl - Go Project Initializr</title>
+    <title>SYSCTL - Go Project Initializr</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -13,6 +16,9 @@ const indexTemplate = `<!DOCTYPE html>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <style>
+        * {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
@@ -124,17 +130,260 @@ const indexTemplate = `<!DOCTYPE html>
             max-height: calc(80vh - 200px);
             overflow-y: auto;
         }
+        
+        /* Tab Styles */
+        .tab-button {
+            transition: all 0.2s ease;
+        }
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .tab-button:not(.active) {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+        .tab-button:not(.active):hover {
+            background-color: #e5e7eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Dark Theme Overrides */
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        
+        .bg-white {
+            background-color: #2d2d2d !important;
+        }
+        
+        .text-gray-800, .text-gray-700 {
+            color: #e5e5e5 !important;
+        }
+        
+        .text-gray-600 {
+            color: #b0b0b0 !important;
+        }
+        
+        .border-gray-200, .border-gray-300 {
+            border-color: #404040 !important;
+        }
+        
+        .bg-gray-50 {
+            background-color: #252525 !important;
+        }
+        
+        input[type="text"],
+        input[type="search"],
+        select {
+            background-color: #1a1a1a !important;
+            color: #ffffff !important;
+            border-color: #404040 !important;
+        }
+        
+        input[type="text"]:focus,
+        input[type="search"]:focus,
+        select:focus {
+            border-color: #11A32B !important;
+            outline: none;
+        }
+        
+        .tab-button:not(.active) {
+            background-color: #2d2d2d !important;
+            color: #b0b0b0 !important;
+        }
+        
+        .tab-button.active {
+            background-color: #11A32B !important;
+            color: white !important;
+        }
+        
+        .card-hover:hover {
+            box-shadow: 0 10px 25px rgba(17, 163, 43, 0.2) !important;
+        }
+        
+        /* Button Styles */
+        button[type="submit"],
+        .bg-blue-600 {
+            background-color: #11A32B !important;
+        }
+        
+        button[type="submit"]:hover,
+        .bg-blue-600:hover {
+            background-color: #0d8a22 !important;
+        }
+        
+        .bg-gray-600 {
+            background-color: #404040 !important;
+        }
+        
+        .bg-gray-600:hover {
+            background-color: #505050 !important;
+        }
+        
+        /* Checkbox and Radio Styles */
+        input[type="checkbox"],
+        input[type="radio"] {
+            accent-color: #11A32B;
+        }
+        
+        /* Select dropdown */
+        select option {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        
+        /* Search results and package items */
+        .bg-blue-100 {
+            background-color: rgba(17, 163, 43, 0.2) !important;
+        }
+        
+        .border-blue-200 {
+            border-color: #11A32B !important;
+        }
+        
+        .text-blue-800 {
+            color: #11A32B !important;
+        }
+        
+        /* Radio button labels - unselected state */
+        .bg-gray-50 {
+            background-color: #252525 !important;
+            border-color: #404040 !important;
+        }
+        
+        .hover\:bg-gray-100:hover {
+            background-color: #2d2d2d !important;
+        }
+        
+        /* HTTP Framework options - unselected state */
+        .http-framework-option {
+            background-color: #252525 !important;
+            border: 2px solid #11A32B !important;
+        }
+        
+        .http-framework-option:hover {
+            background-color: #2d2d2d !important;
+        }
+        
+        /* HTTP Framework options - selected state */
+        input[type="radio"]:checked + label.http-framework-option,
+        .http-framework-option.selected {
+            background-color: #11A32B !important;
+            border-color: #11A32B !important;
+        }
+        
+        input[type="radio"]:checked + label.http-framework-option .font-semibold,
+        .http-framework-option.selected .font-semibold {
+            color: #ffffff !important;
+        }
+        
+        input[type="radio"]:checked + label.http-framework-option .text-sm,
+        .http-framework-option.selected .text-sm {
+            color: #e0e0e0 !important;
+        }
+        
+        /* Radio button labels - selected state (more visible) */
+        .peer-checked\:bg-blue-50 {
+            background-color: #11A32B !important;
+            border-color: #11A32B !important;
+            border-width: 2px !important;
+        }
+        
+        .peer-checked\:border-blue-500 {
+            border-color: #11A32B !important;
+            border-width: 2px !important;
+        }
+        
+        /* Radio button check icon - make it more visible */
+        .text-blue-500 {
+            color: #11A32B !important;
+        }
+        
+        /* Make selected text white for HTTP frameworks */
+        .peer:checked ~ .http-framework-option .font-semibold,
+        .http-framework-option.peer-checked .font-semibold {
+            color: #ffffff !important;
+        }
+        
+        .peer:checked ~ .http-framework-option .text-sm,
+        .http-framework-option.peer-checked .text-sm {
+            color: #e0e0e0 !important;
+        }
+        
+        /* Search results container */
+        #search-results,
+        #npm-search-results {
+            background-color: #2d2d2d !important;
+        }
+        
+        /* Selected packages container */
+        #selected-packages,
+        #selected-npm-packages {
+            background-color: #252525 !important;
+            border-color: #404040 !important;
+        }
+        
+        /* Loading indicators */
+        .htmx-indicator {
+            color: #11A32B !important;
+        }
+        
+        /* Modal styles */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        /* File tree dark theme */
+        .file-item:hover {
+            background-color: rgba(17, 163, 43, 0.1) !important;
+        }
+        
+        .file-item.selected {
+            background-color: rgba(17, 163, 43, 0.2) !important;
+            border-left-color: #11A32B !important;
+        }
+        
+        /* Footer */
+        footer {
+            background-color: #1a1a1a !important;
+            color: #b0b0b0 !important;
+            border-top-color: #404040 !important;
+        }
+        
+        footer a {
+            color: #11A32B !important;
+        }
+        
+        footer a:hover {
+            color: #0d8a22 !important;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen">
     <!-- Header -->
-    <header class="bg-[#11A32B] text-white py-6">
+    <header style="padding: 1.5rem 0; background-color: #1a1a1a; position: relative;">
         <div class="container mx-auto px-6">
-            <h1 class="text-4xl font-bold flex items-center">
-                <i class="fas fa-cube mr-3"></i>
-                go-ctl
-            </h1>
-            <p class="text-blue-100 mt-2">Go Project Initializer - Generate production-ready Go projects in seconds</p>
+            <div class="flex items-center justify-between">
+                <div style="display: flex; flex-direction: column;">
+                    <div style="width: 60px; height: 3px; background-color: #11A32B; margin-bottom: 0.5rem;"></div>
+                    <div class="flex items-center gap-3">
+                        <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                            <img src="/static/Group110.svg" alt="SYSCTL Logo" style="width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                    </div>
+                </div>
+                <a href="/" class="text-white hover:opacity-80 transition-opacity flex items-center gap-2">
+                    <i class="fas fa-home"></i>
+                    <span>Back to Home</span>
+                </a>
+            </div>
         </div>
     </header>
 
@@ -142,14 +391,34 @@ const indexTemplate = `<!DOCTYPE html>
         <div class="grid grid-cols-1 lg:grid-cols-1 gap-8">
 
             <!-- Left Side: Configuration Form -->
-            <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
-                <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-                    <i class="fas fa-cog mr-2 text-blue-600"></i>
+            <div class="bg-white rounded-lg shadow-lg p-6 card-hover" style="border: 1px solid #404040;">
+                <h2 class="text-2xl font-bold mb-6 flex items-center" style="color: #ffffff;">
+                    <i class="fas fa-cog mr-2" style="color: #11A32B;"></i>
                     Project Configuration
                 </h2>
 
-                <form id="project-form" action="/generate" method="POST" class="space-y-6">
+                <!-- Tab Navigation -->
+                <div class="flex space-x-2 mb-6" style="border-bottom: 1px solid #404040;">
+                    <button type="button" 
+                            onclick="switchTab('backend')"
+                            id="tab-backend"
+                            class="tab-button active px-6 py-3 font-semibold rounded-t-lg">
+                        <i class="fab fa-golang mr-2"></i>Back-end
+                    </button>
+                    <button type="button"
+                            onclick="switchTab('frontend')"
+                            id="tab-frontend"
+                            class="tab-button px-6 py-3 font-semibold rounded-t-lg">
+                        <i class="fab fa-react mr-2"></i>Front-end
+                    </button>
+                </div>
 
+                <form id="project-form" action="/generate" method="POST" class="space-y-6">
+                    <!-- Hidden input for project type -->
+                    <input type="hidden" name="projectType" id="projectType" value="backend">
+
+                    <!-- Backend Tab Content -->
+                    <div id="tab-content-backend" class="tab-content active">
                     <!-- Project Metadata -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -178,7 +447,7 @@ const indexTemplate = `<!DOCTYPE html>
                     </div>
 
                     <!-- HTTP Framework -->
-                    <div>
+                    <div class="mt-6">
                         <label class="block text-sm font-medium text-gray-700 mb-3">
                             <i class="fas fa-server mr-1"></i>HTTP Framework
                         </label>
@@ -192,13 +461,14 @@ const indexTemplate = `<!DOCTYPE html>
                                        {{if eq .ID "gin"}}checked{{end}}
                                        class="sr-only peer">
                                 <label for="http-{{.ID}}"
-                                       class="flex p-3 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-gray-100">
+                                       class="flex p-3 rounded-lg cursor-pointer transition-all duration-200 http-framework-option"
+                                       style="background-color: #252525; border: 2px solid #11A32B;">
                                     <div class="flex-1">
-                                        <div class="font-semibold text-gray-800">{{.Name}}</div>
-                                        <div class="text-sm text-gray-600">{{.Description}}</div>
+                                        <div class="font-semibold" style="color: #ffffff;">{{.Name}}</div>
+                                        <div class="text-sm" style="color: #b0b0b0;">{{.Description}}</div>
                                     </div>
                                     <div class="flex-shrink-0 ml-2">
-                                        <i class="fas fa-check-circle text-blue-500 opacity-0 peer-checked:opacity-100"></i>
+                                        <i class="fas fa-check-circle opacity-0 peer-checked:opacity-100" style="font-size: 1.25rem; color: #11A32B;"></i>
                                     </div>
                                 </label>
                             </div>
@@ -207,7 +477,7 @@ const indexTemplate = `<!DOCTYPE html>
                     </div>
 
                     <!-- Database -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-3">
                                 <i class="fas fa-database mr-1"></i>Database
@@ -234,7 +504,7 @@ const indexTemplate = `<!DOCTYPE html>
                     </div>
 
                     <!-- Features -->
-                    <div>
+                    <div class="mt-6">
                         <label class="block text-sm font-medium text-gray-700 mb-3">
                             <i class="fas fa-puzzle-piece mr-1"></i>Additional Features
                         </label>
@@ -259,7 +529,7 @@ const indexTemplate = `<!DOCTYPE html>
                     </div>
 
                     <!-- Dynamic Package Search -->
-                    <div>
+                    <div class="mt-6">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-search mr-1"></i>Add Dependencies
                         </label>
@@ -310,6 +580,169 @@ const indexTemplate = `<!DOCTYPE html>
                             <i class="fas fa-download mr-2"></i>
                             Generate Project
                         </button>
+                    </div>
+                    </div>
+
+                    <!-- Frontend Tab Content -->
+                    <div id="tab-content-frontend" class="tab-content">
+                        <!-- Project Name (shared) -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-tag mr-1"></i>Project Name
+                            </label>
+                            <input type="text"
+                                   name="frontendProjectName"
+                                   id="frontendProjectName"
+                                   value="my-react-app"
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="my-react-app"
+                                   required>
+                        </div>
+
+                        <!-- Language Selection -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                <i class="fas fa-code mr-1"></i>Language
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {{if .Options.Frontend}}
+                                {{range .Options.Frontend.Languages}}
+                                <div class="relative">
+                                    <input type="radio"
+                                           name="frontendLanguage"
+                                           value="{{.ID}}"
+                                           id="lang-{{.ID}}"
+                                           {{if eq .ID "typescript"}}checked{{end}}
+                                           class="sr-only peer">
+                                    <label for="lang-{{.ID}}"
+                                           class="flex p-3 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-gray-100">
+                                        <div class="flex-1">
+                                            <div class="font-semibold text-gray-800">{{.Name}}</div>
+                                            <div class="text-sm text-gray-600">{{.Description}}</div>
+                                        </div>
+                                        <div class="flex-shrink-0 ml-2">
+                                            <i class="fas fa-check-circle text-blue-500 opacity-0 peer-checked:opacity-100"></i>
+                                        </div>
+                                    </label>
+                                </div>
+                                {{end}}
+                                {{end}}
+                            </div>
+                        </div>
+
+                        <!-- Build Tool (Vite - default) -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                <i class="fas fa-tools mr-1"></i>Build Tool
+                            </label>
+                            <div class="p-3 rounded-lg" style="background-color: rgba(17, 163, 43, 0.1); border: 1px solid #11A32B;">
+                                <div class="font-semibold" style="color: #ffffff;">Vite</div>
+                                <div class="text-sm" style="color: #b0b0b0;">Next generation frontend tooling with fast HMR</div>
+                            </div>
+                            <input type="hidden" name="frontendBuildTool" value="vite">
+                        </div>
+
+                        <!-- Linter (ESLint) -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                <i class="fas fa-check-circle mr-1"></i>Linting
+                            </label>
+                            <div class="flex items-start">
+                                <input type="checkbox"
+                                       name="frontendLinter"
+                                       value="eslint"
+                                       id="linter-eslint"
+                                       checked
+                                       class="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <div class="flex-1">
+                                    <label for="linter-eslint" class="text-sm font-medium text-gray-700 cursor-pointer">
+                                        ESLint
+                                    </label>
+                                    <p class="text-xs text-gray-600">Find and fix problems in your JavaScript/TypeScript code</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Features -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                <i class="fas fa-puzzle-piece mr-1"></i>Additional Features
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {{if .Options.Frontend}}
+                                {{range .Options.Frontend.Features}}
+                                <div class="flex items-start">
+                                    <input type="checkbox"
+                                           name="frontendFeatures"
+                                           value="{{.ID}}"
+                                           id="frontend-feature-{{.ID}}"
+                                           class="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <div class="flex-1">
+                                        <label for="frontend-feature-{{.ID}}" class="text-sm font-medium text-gray-700 cursor-pointer">
+                                            {{.Name}}
+                                        </label>
+                                        <p class="text-xs text-gray-600">{{.Description}}</p>
+                                    </div>
+                                </div>
+                                {{end}}
+                                {{end}}
+                            </div>
+                        </div>
+
+                        <!-- npm Package Search -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-search mr-1"></i>Add npm Dependencies
+                            </label>
+                            <input type="search"
+                                   name="q"
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+                                   placeholder="Search npm registry for packages..."
+                                   hx-get="/search-npm-packages"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-target="#npm-search-results"
+                                   hx-swap="innerHTML"
+                                   hx-indicator="#npm-search-loading"
+                                   hx-vals='{"limit": 10}'>
+
+                            <!-- Loading indicator -->
+                            <div id="npm-search-loading" class="htmx-indicator text-center py-2">
+                                <i class="fas fa-spinner fa-spin text-blue-500"></i>
+                                <span class="ml-2 text-sm text-gray-600">Searching...</span>
+                            </div>
+
+                            <!-- Search results container -->
+                            <div id="npm-search-results" class="max-h-48 overflow-y-auto mb-4 space-y-2"></div>
+
+                            <!-- Selected npm packages -->
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Selected Packages:</h4>
+                                <div id="selected-npm-packages" class="space-y-2 min-h-[2rem] p-2 border border-gray-200 rounded-lg bg-gray-50">
+                                    <p class="text-sm text-gray-500 italic">No packages selected</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex space-x-4 pt-6">
+                            <button type="button"
+                                    hx-post="/explore"
+                                    hx-include="#project-form"
+                                    hx-target="#file-tree-content"
+                                    hx-swap="innerHTML"
+                                    hx-indicator="#explore-loading"
+                                    onclick="openExploreModal()"
+                                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center">
+                                <i class="fas fa-eye mr-2"></i>
+                                Preview Structure
+                            </button>
+
+                            <button type="submit"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center">
+                                <i class="fas fa-download mr-2"></i>
+                                Generate Project
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -400,17 +833,17 @@ const indexTemplate = `<!DOCTYPE html>
         </div>
 
         <!-- Footer -->
-        <footer class="mt-12 text-center text-gray-600 border-t pt-8">
+        <footer class="mt-12 text-center border-t pt-8" style="border-top-color: #404040; color: #b0b0b0;">
             <div class="flex justify-center items-center space-x-6">
-                <a href="https://github.com/syst3mctl/go-ctl" class="hover:text-blue-600 transition duration-200">
+                <a href="https://github.com/syst3mctl/go-ctl" class="transition duration-200" style="color: #11A32B;">
                     <i class="fab fa-github mr-2"></i>GitHub
                 </a>
-                <span class="text-gray-400">•</span>
-                <span>Built with ❤️ by systemctl</span>
-                <span class="text-gray-400">•</span>
-                <span>Powered by Go + HTMX</span>
+                <span style="color: #404040;">•</span>
+                <span style="color: #b0b0b0;">Built with ❤️ by systemctl</span>
+                <span style="color: #404040;">•</span>
+                <span style="color: #b0b0b0;">Powered by Go + HTMX</span>
             </div>
-            <p class="mt-2 text-sm">Generate production-ready Go projects with clean architecture</p>
+            <p class="mt-2 text-sm" style="color: #b0b0b0;">Generate production-ready Go projects with clean architecture</p>
         </footer>
     </div>
 
@@ -426,6 +859,20 @@ const indexTemplate = `<!DOCTYPE html>
                 document.getElementById('explore-modal').classList.add('hidden');
                 document.body.style.overflow = 'auto';
             }
+        }
+
+        // Tab switching function
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.getElementById('tab-backend').classList.toggle('active', tabName === 'backend');
+            document.getElementById('tab-frontend').classList.toggle('active', tabName === 'frontend');
+            
+            // Update tab content
+            document.getElementById('tab-content-backend').classList.toggle('active', tabName === 'backend');
+            document.getElementById('tab-content-frontend').classList.toggle('active', tabName === 'frontend');
+            
+            // Update project type hidden input
+            document.getElementById('projectType').value = tabName;
         }
 
         // Database driver selection functions
@@ -490,21 +937,23 @@ const indexTemplate = `<!DOCTYPE html>
                 const database = checkbox.value;
                 if (driverOptions[database]) {
                     const dbSection = document.createElement('div');
-                    dbSection.className = 'border border-gray-200 rounded-lg p-4';
+                    dbSection.className = 'border rounded-lg p-4';
+                    dbSection.style.backgroundColor = '#2d2d2d';
+                    dbSection.style.borderColor = '#404040';
                     const savedSelection = savedSelections[database];
                     const defaultDriver = driverOptions[database][0].id;
                     const selectedDriver = savedSelection || defaultDriver;
                     
                     dbSection.innerHTML =
-                        '<h4 class="font-medium text-gray-900 mb-3 capitalize">' + database + ' Driver</h4>' +
+                        '<h4 class="font-medium mb-3 capitalize" style="color: #ffffff;">' + database + ' Driver</h4>' +
                         '<div class="space-y-2">' +
                             driverOptions[database].map(function(driver) {
                                 const isChecked = driver.id === selectedDriver ? 'checked' : '';
-                                return '<label class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 border border-gray-200 cursor-pointer transition-colors duration-150">' +
-                                    '<input type="radio" name="driver_' + database + '" value="' + driver.id + '" ' + isChecked + ' class="mt-1 text-blue-600 border-gray-300 focus:ring-blue-500" required>' +
+                                return '<label class="flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors duration-150" style="background-color: #252525; border-color: #404040;">' +
+                                    '<input type="radio" name="driver_' + database + '" value="' + driver.id + '" ' + isChecked + ' class="mt-1" style="accent-color: #11A32B;" required>' +
                                     '<div class="flex-1 min-w-0">' +
-                                        '<div class="text-sm font-medium text-gray-900">' + driver.name + '</div>' +
-                                        '<div class="text-sm text-gray-500">' + driver.description + '</div>' +
+                                        '<div class="text-sm font-medium" style="color: #ffffff;">' + driver.name + '</div>' +
+                                        '<div class="text-sm" style="color: #b0b0b0;">' + driver.description + '</div>' +
                                     '</div>' +
                                 '</label>';
                             }).join('') +
@@ -523,6 +972,28 @@ const indexTemplate = `<!DOCTYPE html>
 
             // Initial call to set up driver options
             updateDriverOptions();
+            
+            // Handle HTTP Framework selection
+            function updateHttpFrameworkSelection() {
+                document.querySelectorAll('input[name="httpPackage"]').forEach(radio => {
+                    const label = document.querySelector('label[for="' + radio.id + '"]');
+                    if (label && label.classList.contains('http-framework-option')) {
+                        if (radio.checked) {
+                            label.classList.add('selected');
+                        } else {
+                            label.classList.remove('selected');
+                        }
+                    }
+                });
+            }
+            
+            // Add event listeners to HTTP framework radio buttons
+            document.querySelectorAll('input[name="httpPackage"]').forEach(radio => {
+                radio.addEventListener('change', updateHttpFrameworkSelection);
+            });
+            
+            // Set initial state
+            updateHttpFrameworkSelection();
         });
         // File tree and explorer functions
         // Initialize file tree - expand root folders automatically
@@ -661,21 +1132,31 @@ const indexTemplate = `<!DOCTYPE html>
             // Build URL with project configuration parameters
             const params = new URLSearchParams();
             params.append('path', path);
-            params.append('projectName', formData.get('projectName') || 'my-go-app');
-            params.append('goVersion', formData.get('goVersion') || '1.23');
-            params.append('httpPackage', formData.get('httpPackage') || 'gin');
+            const projectType = formData.get('projectType') || 'backend';
+            params.append('projectType', projectType);
+            
+            if (projectType === 'frontend') {
+                params.append('frontendProjectName', formData.get('frontendProjectName') || 'my-react-app');
+                params.append('frontendLanguage', formData.get('frontendLanguage') || 'typescript');
+                params.append('frontendBuildTool', formData.get('frontendBuildTool') || 'vite');
+                params.append('frontendLinter', formData.get('frontendLinter') || 'eslint');
+            } else {
+                params.append('projectName', formData.get('projectName') || 'my-go-app');
+                params.append('goVersion', formData.get('goVersion') || '1.23');
+                params.append('httpPackage', formData.get('httpPackage') || 'gin');
 
-            // Handle multiple database selections
-            const selectedDatabases = formData.getAll('databases');
-            if (selectedDatabases.length > 0) {
-                params.append('databases', selectedDatabases.join(','));
-                // Add driver selections for each database
-                selectedDatabases.forEach(dbId => {
-                    const driverValue = formData.get('driver_' + dbId);
-                    if (driverValue) {
-                        params.append('driver_' + dbId, driverValue);
-                    }
-                });
+                // Handle multiple database selections
+                const selectedDatabases = formData.getAll('databases');
+                if (selectedDatabases.length > 0) {
+                    params.append('databases', selectedDatabases.join(','));
+                    // Add driver selections for each database
+                    selectedDatabases.forEach(dbId => {
+                        const driverValue = formData.get('driver_' + dbId);
+                        if (driverValue) {
+                            params.append('driver_' + dbId, driverValue);
+                        }
+                    });
+                }
             }
 
             // Fetch file content with configuration
@@ -717,6 +1198,9 @@ const indexTemplate = `<!DOCTYPE html>
             switch(ext) {
                 case 'go': return 'go';
                 case 'js': return 'javascript';
+                case 'jsx': return 'jsx';
+                case 'ts': return 'typescript';
+                case 'tsx': return 'tsx';
                 case 'json': return 'json';
                 case 'yaml':
                 case 'yml': return 'yaml';
@@ -725,6 +1209,7 @@ const indexTemplate = `<!DOCTYPE html>
                 case 'html': return 'html';
                 case 'css': return 'css';
                 case 'sql': return 'sql';
+                case 'cjs': return 'javascript';
                 default: return 'text';
             }
         }
@@ -852,26 +1337,27 @@ const fileContentTemplate = `
 const searchResultsTemplate = `
 {{if .Results}}
     {{range .Results}}
-    <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-150">
+    <div class="flex items-center justify-between p-3 border rounded-lg transition duration-150" style="background-color: #2d2d2d; border-color: #404040;">
         <div class="flex-1 min-w-0">
-            <div class="font-semibold text-gray-900 text-sm">{{.Path}}</div>
-            <div class="text-xs text-gray-600 mt-1 truncate">{{.Synopsis}}</div>
+            <div class="font-semibold text-sm" style="color: #ffffff;">{{.Path}}</div>
+            <div class="text-xs mt-1 truncate" style="color: #b0b0b0;">{{.Synopsis}}</div>
         </div>
         <button type="button"
                 hx-post="/add-package"
                 hx-vals='{"pkgPath": "{{.Path}}"}'
                 hx-target="#selected-packages"
                 hx-swap="beforeend"
-                class="ml-3 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition duration-150 flex items-center">
+                class="ml-3 text-white px-3 py-1 rounded text-sm font-medium transition duration-150 flex items-center"
+                style="background-color: #11A32B;">
             <i class="fas fa-plus mr-1"></i>Add
         </button>
     </div>
     {{end}}
 {{else}}
-    <div class="text-center py-4 text-gray-500">
+    <div class="text-center py-4" style="color: #b0b0b0;">
         <i class="fas fa-search text-2xl mb-2"></i>
         <p class="text-sm">No packages found for "{{.Query}}"</p>
-        <p class="text-xs text-gray-400 mt-1">Try a different search term</p>
+        <p class="text-xs mt-1" style="color: #808080;">Try a different search term</p>
     </div>
 {{end}}
 `
@@ -893,4 +1379,479 @@ const selectedPackageTemplate = `
         <i class="fas fa-times"></i>
     </button>
 </div>
+`
+
+const npmSearchResultsTemplate = `
+{{if .Results}}
+    {{range .Results}}
+    <div class="flex items-center justify-between p-3 border rounded-lg transition duration-150" style="background-color: #2d2d2d; border-color: #404040;">
+        <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm" style="color: #ffffff;">{{.Name}}</div>
+            <div class="text-xs mt-1 truncate" style="color: #b0b0b0;">{{.Description}}</div>
+            <div class="flex items-center gap-3 mt-1 text-xs" style="color: #808080;">
+                <span>v{{.Version}}</span>
+                {{if .Downloads.Monthly}}
+                <span>• <i class="fas fa-download mr-1"></i>{{.Downloads.Monthly}} downloads/month</span>
+                {{end}}
+            </div>
+        </div>
+        <button type="button"
+                hx-post="/add-npm-package"
+                hx-vals='{"pkgName": "{{.Name}}"}'
+                hx-target="#selected-npm-packages"
+                hx-swap="beforeend"
+                class="ml-3 text-white px-3 py-1 rounded text-sm font-medium transition duration-150 flex items-center"
+                style="background-color: #11A32B;">
+            <i class="fas fa-plus mr-1"></i>Add
+        </button>
+    </div>
+    {{end}}
+{{else}}
+    <div class="text-center py-4" style="color: #b0b0b0;">
+        <i class="fas fa-search text-2xl mb-2"></i>
+        <p class="text-sm">No packages found for "{{.Query}}"</p>
+        <p class="text-xs mt-1" style="color: #808080;">Try a different search term</p>
+    </div>
+{{end}}
+`
+
+const selectedNpmPackageTemplate = `
+<div id="npm-pkg-{{.ID}}" class="flex items-center justify-between bg-blue-100 border border-blue-200 rounded-lg p-2">
+    <div class="flex items-center">
+        <i class="fab fa-npm text-blue-600 mr-2"></i>
+        <span class="text-sm font-medium text-blue-800">{{.PkgName}}</span>
+    </div>
+
+    <!-- Hidden input for form submission -->
+    <input type="hidden" name="npmPackages" value="{{.PkgName}}">
+
+    <button type="button"
+            hx-target="#npm-pkg-{{.ID}}"
+            hx-swap="delete"
+            class="text-red-500 hover:text-red-700 font-bold text-sm ml-2 transition duration-150">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+`
+
+const landingTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSCTL - Go Project Initializer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            // margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        /* Header */
+        header {
+            padding: 1.5rem 0;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .green-accent-line {
+            width: 60px;
+            height: 3px;
+            background-color: #11A32B;
+            margin-bottom: 0.5rem;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .logo-text {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #ffffff;
+        }
+        
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        
+        .nav-links a:hover {
+            opacity: 0.7;
+        }
+        
+        /* Main Content Wrapper */
+        .main-wrapper {
+            height: calc(100vh - 120px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        
+        /* Hero Section */
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 0;
+            position: relative;
+        }
+        
+        .hero-left {
+            flex: 1;
+            max-width: 60%;
+        }
+        
+        .hero-heading {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -2px;
+        }
+        
+        .hero-right {
+            flex: 1;
+            text-align: right;
+            max-width: 40%;
+        }
+        
+        .hero-subheading {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -2px;
+        }
+        
+        /* Green Accent Bar */
+        .accent-bar {
+            background-color: #11A32B;
+            width: 100%;
+            padding: 1rem 0;
+            margin: 1.5rem 0;
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .accent-bar-content {
+            display: flex;
+            gap: 3rem;
+            white-space: nowrap;
+            animation: scroll 30s linear infinite;
+        }
+        
+        .accent-bar-item {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+        
+        @keyframes scroll {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+        
+        /* Stats Section */
+        .stats-section {
+            display: flex;
+            gap: 2rem;
+            margin: 1.5rem 0;
+            font-size: 1rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #11A32B;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* CTA Buttons */
+        .cta-section {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .cta-button {
+            padding: 0.875rem 2rem;
+            border: 2px solid #ffffff;
+            background-color: transparent;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .cta-button:hover {
+            background-color: #ffffff;
+            color: #1a1a1a;
+        }
+        
+        .cta-button.primary {
+            background-color: #11A32B;
+            border-color: #11A32B;
+        }
+        
+        .cta-button.primary:hover {
+            background-color: #0d8a22;
+            border-color: #0d8a22;
+        }
+        
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-heading,
+            .hero-subheading {
+                font-size: 3rem;
+            }
+            
+            .hero {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .hero-left,
+            .hero-right {
+                max-width: 100%;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero-heading,
+            .hero-subheading {
+                font-size: 2rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .nav-links {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .cta-section {
+                flex-direction: column;
+            }
+            
+            .cta-button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="green-accent-line"></div>
+                    <div class="logo">
+                        <div class="logo-icon">
+                            <img src="/static/Group110.svg" alt="SYSCTL Logo">
+                        </div>
+                    </div>
+                </div>
+                <div class="nav-links">
+                    <a href="/">Main Page</a>
+                    <span>|</span>
+                    <a href="#">English</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <!-- Hero Section -->
+        <div class="container">
+            <div class="hero">
+                <div class="hero-left">
+                    <h1 class="hero-heading">Short, Punchy, Solid</h1>
+                    
+                    <!-- Stats Section -->
+                    <div class="stats-section">
+                        <div class="stat-item">
+                            <div class="stat-number">{{.TotalGenerations}}</div>
+                            <div class="stat-label">Projects Generated</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">{{.TotalDownloads}}</div>
+                            <div class="stat-label">Downloads</div>
+                        </div>
+                    </div>
+                    
+                    <!-- CTA Section -->
+                    <div class="cta-section">
+                        <a href="/generator" class="cta-button">
+                            Try out →
+                        </a>
+                        <a href="https://github.com/syst3mctl/go-ctl" class="cta-button">
+                            See Our Work
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="hero-right">
+                    <h2 class="hero-subheading">From Idea<br>to Launch</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Green Accent Bar -->
+        <div class="accent-bar">
+            <div class="accent-bar-content">
+                <span class="accent-bar-item">Go Projects</span>
+                <span class="accent-bar-item">React Apps</span>
+                <span class="accent-bar-item">Clean Architecture</span>
+                <span class="accent-bar-item">Production Ready</span>
+                <span class="accent-bar-item">Fast Setup</span>
+                <span class="accent-bar-item">Best Practices</span>
+                <span class="accent-bar-item">Go Projects</span>
+                <span class="accent-bar-item">React Apps</span>
+                <span class="accent-bar-item">Clean Architecture</span>
+                <span class="accent-bar-item">Production Ready</span>
+                <span class="accent-bar-item">Fast Setup</span>
+                <span class="accent-bar-item">Best Practices</span>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Smooth animations and interactions
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate stats on load - fast animation (under 1 second)
+            const statNumbers = document.querySelectorAll('.stat-number');
+            statNumbers.forEach(stat => {
+                const finalValue = parseInt(stat.textContent);
+                if (!isNaN(finalValue) && finalValue > 0) {
+                    let current = 0;
+                    const duration = 800; // Total animation duration in ms
+                    const steps = 20; // Number of animation steps
+                    const increment = finalValue / steps;
+                    const interval = duration / steps;
+                    
+                    const timer = setInterval(() => {
+                        current += increment;
+                        if (current >= finalValue) {
+                            stat.textContent = finalValue;
+                            clearInterval(timer);
+                        } else {
+                            stat.textContent = Math.floor(current);
+                        }
+                    }, interval);
+                }
+            });
+        });
+        
+        // Smooth button hover effects
+        const buttons = document.querySelectorAll('.cta-button');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', () => {
+                button.style.transform = 'translateY(-2px)';
+            });
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>
 `

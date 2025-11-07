@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/syst3mctl/go-ctl/internal/metadata"
+	"github.com/syst3mctl/go-ctl/internal/storage"
 )
 
 // FileItem represents a file or folder in the project structure
@@ -54,6 +56,74 @@ type PackageResult struct {
 	Version  string `json:"version"`
 }
 
+// NpmPackageResult represents an npm package search result
+type NpmPackageResult struct {
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Version     string       `json:"version"`
+	Downloads   NpmDownloads `json:"downloads"`
+}
+
+// NpmSearchResponse is the top-level object from npm registry
+type NpmSearchResponse struct {
+	Objects []NpmSearchResult `json:"objects"`
+}
+
+// NpmSearchResult includes Package, Downloads, and Score
+type NpmSearchResult struct {
+	Package   NpmPackageInfo `json:"package"`
+	Downloads NpmDownloads    `json:"downloads"`
+	Score     NpmScore        `json:"score"`
+}
+
+// NpmPackageInfo holds the details inside the "package" key
+type NpmPackageInfo struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Version     string         `json:"version"`
+	License     string         `json:"license"`
+	Keywords    []string       `json:"keywords"`
+	Links       NpmLinks       `json:"links"`
+	Maintainers []NpmMaintainer `json:"maintainers"`
+}
+
+// NpmDownloads holds the download stats
+type NpmDownloads struct {
+	Monthly int `json:"monthly"`
+	Weekly  int `json:"weekly"`
+}
+
+// NpmScore holds the search score details
+type NpmScore struct {
+	Final float64 `json:"final"`
+}
+
+// NpmLinks contains the URL for the package page
+type NpmLinks struct {
+	Npm string `json:"npm"`
+}
+
+// NpmMaintainer holds the info for a package maintainer
+type NpmMaintainer struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
+// npm package search cache
+type npmSearchCache struct {
+	mu      sync.RWMutex
+	results map[string]npmCacheEntry
+}
+
+type npmCacheEntry struct {
+	data      []NpmPackageResult
+	timestamp time.Time
+}
+
+var npmSearchCacheInstance = &npmSearchCache{
+	results: make(map[string]npmCacheEntry),
+}
+
 // Package search cache
 type packageSearchCache struct {
 	mu      sync.RWMutex
@@ -70,6 +140,42 @@ var searchCache = &packageSearchCache{
 }
 
 const cacheDuration = 10 * time.Minute
+
+// handleLanding serves the landing page with stats
+func handleLanding(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get stats from analytics database
+	stats, err := storage.GetStats()
+	if err != nil {
+		log.Printf("Failed to get stats: %v", err)
+		// Use zero stats if database unavailable
+		stats = &storage.Stats{
+			TotalGenerations: 0,
+			TotalDownloads:   0,
+		}
+	}
+
+	// Load and execute the landing template
+	tmpl := template.Must(template.New("landing").Parse(landingTemplate))
+
+	data := struct {
+		TotalGenerations int64
+		TotalDownloads   int64
+	}{
+		TotalGenerations: stats.TotalGenerations,
+		TotalDownloads:   stats.TotalDownloads,
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
 
 // handleIndex serves the main project generator page
 func handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -116,29 +222,60 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build project configuration from form data
-	var databases []metadata.DatabaseSelection
-	selectedDatabases := r.Form["databases"]
-	for _, dbID := range selectedDatabases {
-		database := metadata.FindOption(appOptions.Databases, dbID)
-		// Get the corresponding driver from form data
-		driverID := r.FormValue("driver_" + dbID)
-		driver := metadata.FindOption(appOptions.DbDrivers, driverID)
-		if database.ID != "" && driver.ID != "" {
-			databases = append(databases, metadata.DatabaseSelection{
-				Database: database,
-				Driver:   driver,
-			})
-		}
+	// Get project type
+	projectType := r.FormValue("projectType")
+	if projectType == "" {
+		projectType = "backend" // Default to backend
 	}
 
-	config := metadata.ProjectConfig{
-		ProjectName:    r.FormValue("projectName"),
-		GoVersion:      r.FormValue("goVersion"),
-		HttpPackage:    metadata.FindOption(appOptions.Http, r.FormValue("httpPackage")),
-		Databases:      databases,
-		Features:       metadata.FindOptions(appOptions.Features, r.Form["features"]),
-		CustomPackages: r.Form["customPackages"],
+	var config metadata.ProjectConfig
+
+	if projectType == "frontend" {
+		// Build frontend configuration
+		frontendConfig := &metadata.FrontendConfig{
+			Language:       metadata.FindOption(appOptions.Frontend.Languages, r.FormValue("frontendLanguage")),
+			BuildTool:      metadata.FindOption(appOptions.Frontend.BuildTools, r.FormValue("frontendBuildTool")),
+			Linter:         metadata.Option{ID: "eslint", Name: "ESLint"},
+			Features:       metadata.FindOptions(appOptions.Frontend.Features, r.Form["frontendFeatures"]),
+			CustomPackages: r.Form["npmPackages"],
+		}
+
+		// Check if ESLint is selected
+		if r.FormValue("frontendLinter") == "eslint" {
+			frontendConfig.Linter = metadata.FindOption(appOptions.Frontend.Linters, "eslint")
+		}
+
+		config = metadata.ProjectConfig{
+			ProjectName:    r.FormValue("frontendProjectName"),
+			ProjectType:    "frontend",
+			FrontendConfig: frontendConfig,
+		}
+	} else {
+		// Build backend configuration
+		var databases []metadata.DatabaseSelection
+		selectedDatabases := r.Form["databases"]
+		for _, dbID := range selectedDatabases {
+			database := metadata.FindOption(appOptions.Databases, dbID)
+			// Get the corresponding driver from form data
+			driverID := r.FormValue("driver_" + dbID)
+			driver := metadata.FindOption(appOptions.DbDrivers, driverID)
+			if database.ID != "" && driver.ID != "" {
+				databases = append(databases, metadata.DatabaseSelection{
+					Database: database,
+					Driver:   driver,
+				})
+			}
+		}
+
+		config = metadata.ProjectConfig{
+			ProjectName:    r.FormValue("projectName"),
+			ProjectType:    "backend",
+			GoVersion:      r.FormValue("goVersion"),
+			HttpPackage:    metadata.FindOption(appOptions.Http, r.FormValue("httpPackage")),
+			Databases:      databases,
+			Features:       metadata.FindOptions(appOptions.Features, r.Form["features"]),
+			CustomPackages: r.Form["customPackages"],
+		}
 	}
 
 	// Validate configuration
@@ -149,15 +286,35 @@ func handleGenerate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Increment generation counter (before generation starts)
+	// Errors are logged but don't block generation
+	if err := storage.IncrementGeneration(); err != nil {
+		log.Printf("Failed to increment generation counter: %v", err)
+	}
+
 	// Set headers for ZIP download
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", config.ProjectName))
 	w.Header().Set("Cache-Control", "no-cache")
 
-	// Generate and stream the ZIP file
-	if err := gen.GenerateProjectZip(config, w); err != nil {
-		// If we haven't written headers yet, we can still return an error
-		http.Error(w, "Failed to generate project: "+err.Error(), http.StatusInternalServerError)
+	// Generate and stream the ZIP file based on project type
+	var generationErr error
+	if config.ProjectType == "frontend" {
+		generationErr = gen.GenerateReactProjectZip(config, w)
+	} else {
+		generationErr = gen.GenerateProjectZip(config, w)
+	}
+
+	// If generation was successful, increment download counter
+	// Note: We increment download counter after successful generation
+	// since the ZIP is streamed directly to the response
+	if generationErr == nil {
+		// Increment download counter (errors are logged but don't block)
+		if err := storage.IncrementDownload(); err != nil {
+			log.Printf("Failed to increment download counter: %v", err)
+		}
+	} else {
+		http.Error(w, "Failed to generate project: "+generationErr.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -175,33 +332,72 @@ func handleExplore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build project configuration from form data
-	var databases []metadata.DatabaseSelection
-	selectedDatabases := r.Form["databases"]
-	for _, dbID := range selectedDatabases {
-		database := metadata.FindOption(appOptions.Databases, dbID)
-		// Get the corresponding driver from form data
-		driverID := r.FormValue("driver_" + dbID)
-		driver := metadata.FindOption(appOptions.DbDrivers, driverID)
-		if database.ID != "" && driver.ID != "" {
-			databases = append(databases, metadata.DatabaseSelection{
-				Database: database,
-				Driver:   driver,
-			})
+	// Get project type
+	projectType := r.FormValue("projectType")
+	if projectType == "" {
+		projectType = "backend" // Default to backend
+	}
+
+	var config metadata.ProjectConfig
+	var fileItems []FileItem
+
+	if projectType == "frontend" {
+		// Build frontend configuration
+		frontendConfig := &metadata.FrontendConfig{
+			Language:       metadata.FindOption(appOptions.Frontend.Languages, r.FormValue("frontendLanguage")),
+			BuildTool:      metadata.FindOption(appOptions.Frontend.BuildTools, r.FormValue("frontendBuildTool")),
+			Linter:         metadata.Option{ID: "eslint", Name: "ESLint"},
+			Features:       []metadata.Option{},
+			CustomPackages: r.Form["npmPackages"],
 		}
-	}
 
-	config := metadata.ProjectConfig{
-		ProjectName:    r.FormValue("projectName"),
-		GoVersion:      r.FormValue("goVersion"),
-		HttpPackage:    metadata.FindOption(appOptions.Http, r.FormValue("httpPackage")),
-		Databases:      databases,
-		Features:       metadata.FindOptions(appOptions.Features, r.Form["features"]),
-		CustomPackages: r.Form["customPackages"],
-	}
+		// Get frontend features if Frontend options exist
+		if appOptions.Frontend != nil {
+			frontendConfig.Features = metadata.FindOptions(appOptions.Frontend.Features, r.Form["frontendFeatures"])
+			// Check if ESLint is selected
+			if r.FormValue("frontendLinter") == "eslint" {
+				frontendConfig.Linter = metadata.FindOption(appOptions.Frontend.Linters, "eslint")
+			}
+		}
 
-	// Generate file items for the file tree
-	fileItems := generateFileItems(config)
+		config = metadata.ProjectConfig{
+			ProjectName:    r.FormValue("frontendProjectName"),
+			ProjectType:    "frontend",
+			FrontendConfig: frontendConfig,
+		}
+
+		// Generate frontend file items
+		fileItems = generateFrontendFileItems(config)
+	} else {
+		// Build backend configuration
+		var databases []metadata.DatabaseSelection
+		selectedDatabases := r.Form["databases"]
+		for _, dbID := range selectedDatabases {
+			database := metadata.FindOption(appOptions.Databases, dbID)
+			// Get the corresponding driver from form data
+			driverID := r.FormValue("driver_" + dbID)
+			driver := metadata.FindOption(appOptions.DbDrivers, driverID)
+			if database.ID != "" && driver.ID != "" {
+				databases = append(databases, metadata.DatabaseSelection{
+					Database: database,
+					Driver:   driver,
+				})
+			}
+		}
+
+		config = metadata.ProjectConfig{
+			ProjectName:    r.FormValue("projectName"),
+			ProjectType:    "backend",
+			GoVersion:      r.FormValue("goVersion"),
+			HttpPackage:    metadata.FindOption(appOptions.Http, r.FormValue("httpPackage")),
+			Databases:      databases,
+			Features:       metadata.FindOptions(appOptions.Features, r.Form["features"]),
+			CustomPackages: r.Form["customPackages"],
+		}
+
+		// Generate backend file items
+		fileItems = generateFileItems(config)
+	}
 
 	// Return HTML snippet for HTMX
 	funcMap := template.FuncMap{
@@ -539,6 +735,183 @@ func handleAddPackage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleSearchNpmPackages searches npm registry for packages
+func handleSearchNpmPackages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse query parameters
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	if query == "" {
+		w.Write([]byte(""))
+		return
+	}
+
+	// Parse limit parameter (default to 10 for faster results)
+	limit := 10
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 50 {
+			limit = parsedLimit
+		}
+	}
+
+	// Check cache first
+	if cached, found := npmSearchCacheInstance.get(query); found {
+		// Apply limit to cached results
+		if len(cached) > limit {
+			renderNpmSearchResults(w, cached[:limit], query)
+		} else {
+			renderNpmSearchResults(w, cached, query)
+		}
+		return
+	}
+
+	// Search npm registry with limit
+	const npmSearchURL = "https://registry.npmjs.org/-/v1/search"
+	reqURL := fmt.Sprintf("%s?text=%s&size=%d&format=json", npmSearchURL, url.QueryEscape(query), limit)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(reqURL)
+	if err != nil {
+		log.Printf("Error fetching npm packages: %v", err)
+		w.Write([]byte(""))
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Error: got status code %d from npm registry", resp.StatusCode)
+		w.Write([]byte(""))
+		return
+	}
+
+	var searchResponse NpmSearchResponse
+	if err := json.NewDecoder(resp.Body).Decode(&searchResponse); err != nil {
+		log.Printf("Error decoding npm response: %v", err)
+		w.Write([]byte(""))
+		return
+	}
+
+	var results []NpmPackageResult
+	for _, result := range searchResponse.Objects {
+		pkg := result.Package
+		results = append(results, NpmPackageResult{
+			Name:        pkg.Name,
+			Description: pkg.Description,
+			Version:     pkg.Version,
+			Downloads:   result.Downloads,
+		})
+		// Apply limit to prevent processing too many results
+		if len(results) >= limit {
+			break
+		}
+	}
+
+	// Cache results
+	npmSearchCacheInstance.set(query, results)
+
+	// Render results
+	renderNpmSearchResults(w, results, query)
+}
+
+// renderNpmSearchResults renders npm search results as HTML
+func renderNpmSearchResults(w http.ResponseWriter, results []NpmPackageResult, query string) {
+	tmpl := template.Must(template.New("npm-search-results").Parse(npmSearchResultsTemplate))
+
+	data := struct {
+		Results []NpmPackageResult
+		Query   string
+	}{
+		Results: results,
+		Query:   query,
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, "Failed to render npm search results", http.StatusInternalServerError)
+		return
+	}
+}
+
+// handleAddNpmPackage adds an npm package to the selected packages list
+func handleAddNpmPackage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	pkgName := r.FormValue("pkgName")
+	if pkgName == "" {
+		http.Error(w, "Package name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Generate a unique ID for the package element
+	pkgID := strings.ReplaceAll(pkgName, "/", "-")
+	pkgID = strings.ReplaceAll(pkgID, ".", "-")
+	pkgID = strings.ReplaceAll(pkgID, "@", "-")
+
+	// Render selected npm package item template
+	tmpl := template.Must(template.New("selected-npm-package").Parse(selectedNpmPackageTemplate))
+
+	data := struct {
+		PkgName string
+		ID      string
+	}{
+		PkgName: pkgName,
+		ID:      pkgID,
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, "Failed to render npm package item", http.StatusInternalServerError)
+		return
+	}
+}
+
+// npm cache methods
+func (c *npmSearchCache) get(query string) ([]NpmPackageResult, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	entry, exists := c.results[query]
+	if !exists {
+		return nil, false
+	}
+
+	if time.Since(entry.timestamp) > cacheDuration {
+		return nil, false
+	}
+
+	return entry.data, true
+}
+
+func (c *npmSearchCache) set(query string, results []NpmPackageResult) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.results[query] = npmCacheEntry{
+		data:      results,
+		timestamp: time.Now(),
+	}
+
+	// Clean up old entries
+	if len(c.results) > 100 {
+		for k, v := range c.results {
+			if time.Since(v.timestamp) > cacheDuration {
+				delete(c.results, k)
+			}
+		}
+	}
+}
+
 // handleFileContent serves individual file content for the modal using actual templates
 func handleFileContent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -577,24 +950,61 @@ func handleFileContent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse project configuration from query parameters
-	config := metadata.ProjectConfig{
-		ProjectName: getQueryParam(r, "projectName", "my-go-app"),
-		GoVersion:   getQueryParam(r, "goVersion", "1.23"),
-		HttpPackage: metadata.Option{
-			ID:   getQueryParam(r, "httpPackage", "gin"),
-			Name: "Gin",
-		},
-		Databases:      databases,
-		Features:       []metadata.Option{}, // Features can be added later if needed
-		CustomPackages: []string{},          // Custom packages can be added later if needed
-	}
+	// Get project type from query
+	projectType := getQueryParam(r, "projectType", "backend")
 
-	// Generate content using actual template system
-	content, err := gen.GenerateFileContent(filePath, config)
-	if err != nil {
-		// Fall back to default content if template generation fails
-		content = generateFileContentWithConfig(filePath, config)
+	var content string
+	var err error
+
+	if projectType == "frontend" {
+		// Build frontend configuration
+		frontendConfig := &metadata.FrontendConfig{
+			Language:       metadata.FindOption(appOptions.Frontend.Languages, getQueryParam(r, "frontendLanguage", "typescript")),
+			BuildTool:      metadata.FindOption(appOptions.Frontend.BuildTools, getQueryParam(r, "frontendBuildTool", "vite")),
+			Linter:         metadata.Option{ID: "eslint", Name: "ESLint"},
+			Features:       []metadata.Option{},
+			CustomPackages: []string{},
+		}
+
+		if appOptions.Frontend != nil {
+			if getQueryParam(r, "frontendLinter", "") == "eslint" {
+				frontendConfig.Linter = metadata.FindOption(appOptions.Frontend.Linters, "eslint")
+			}
+		}
+
+		config := metadata.ProjectConfig{
+			ProjectName:    getQueryParam(r, "frontendProjectName", "my-react-app"),
+			ProjectType:    "frontend",
+			FrontendConfig: frontendConfig,
+		}
+
+		// Generate React project structure and get file content
+		projectStructure := gen.GenerateReactProject(config)
+		var exists bool
+		content, exists = projectStructure[filePath]
+		if !exists {
+			content = fmt.Sprintf("// File: %s\n// Content not found", filePath)
+		}
+	} else {
+		// Parse backend project configuration from query parameters
+		config := metadata.ProjectConfig{
+			ProjectName: getQueryParam(r, "projectName", "my-go-app"),
+			GoVersion:   getQueryParam(r, "goVersion", "1.23"),
+			HttpPackage: metadata.Option{
+				ID:   getQueryParam(r, "httpPackage", "gin"),
+				Name: "Gin",
+			},
+			Databases:      databases,
+			Features:       []metadata.Option{},
+			CustomPackages: []string{},
+		}
+
+		// Generate content using actual template system
+		content, err = gen.GenerateFileContent(filePath, config)
+		if err != nil {
+			// Fall back to default content if template generation fails
+			content = generateFileContentWithConfig(filePath, config)
+		}
 	}
 
 	// Return raw content for JavaScript to handle
@@ -772,6 +1182,180 @@ func generateFileItems(config metadata.ProjectConfig) []FileItem {
 	// Always use the net/http + raw SQL pattern structure for all projects
 	// This provides a consistent structure regardless of HTTP framework or database driver
 	return generateNetHTTPRawSQLFileItems(config)
+}
+
+// generateFrontendFileItems creates file items for React projects
+func generateFrontendFileItems(config metadata.ProjectConfig) []FileItem {
+	if config.FrontendConfig == nil {
+		return []FileItem{}
+	}
+
+	frontendConfig := config.FrontendConfig
+	isTypeScript := frontendConfig.Language.ID == "typescript"
+	ext := ".jsx"
+	if isTypeScript {
+		ext = ".tsx"
+	}
+
+	filePaths := []struct {
+		Path string
+		Icon string
+	}{
+		{"package.json", "fab fa-node-js text-green-600"},
+		{"index.html", "fab fa-html5 text-orange-500"},
+		{".gitignore", "fab fa-git-alt text-orange-500"},
+		{"README.md", "fab fa-markdown text-blue-600"},
+	}
+
+	// Vite config
+	if isTypeScript {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{"vite.config.ts", "fas fa-cog text-blue-500"})
+	} else {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{"vite.config.js", "fas fa-cog text-blue-500"})
+	}
+
+	// TypeScript config files
+	if isTypeScript {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"tsconfig.json", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"tsconfig.node.json", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/vite-env.d.ts", "fab fa-js text-blue-600"},
+		)
+	}
+
+	// ESLint config
+	if frontendConfig.Linter.ID == "eslint" {
+		filePaths = append(filePaths, struct {
+			Path string
+			Icon string
+		}{".eslintrc.cjs", "fas fa-check-circle text-green-500"})
+	}
+
+	// Prettier config
+	hasPrettier := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "prettier" {
+			hasPrettier = true
+			break
+		}
+	}
+	if hasPrettier {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{".prettierrc", "fas fa-code text-purple-500"},
+			struct {
+				Path string
+				Icon string
+			}{".prettierignore", "fas fa-code text-purple-500"},
+		)
+	}
+
+	// Tailwind config
+	hasTailwind := false
+	for _, feature := range frontendConfig.Features {
+		if feature.ID == "tailwind" {
+			hasTailwind = true
+			break
+		}
+	}
+	if hasTailwind {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"tailwind.config.js", "fas fa-palette text-cyan-500"},
+			struct {
+				Path string
+				Icon string
+			}{"postcss.config.js", "fas fa-cog text-gray-500"},
+		)
+	}
+
+	// Source files
+	filePaths = append(filePaths,
+		struct {
+			Path string
+			Icon string
+		}{fmt.Sprintf("src/main%s", ext), "fab fa-react text-blue-400"},
+		struct {
+			Path string
+			Icon string
+		}{fmt.Sprintf("src/App%s", ext), "fab fa-react text-blue-400"},
+		struct {
+			Path string
+			Icon string
+		}{fmt.Sprintf("src/components/HelloWorld%s", ext), "fab fa-react text-blue-400"},
+		struct {
+			Path string
+			Icon string
+		}{"src/styles/index.css", "fab fa-css3-alt text-blue-500"},
+	)
+
+	// Assets directory
+	filePaths = append(filePaths, struct {
+		Path string
+		Icon string
+	}{"src/assets/.gitkeep", "fas fa-folder text-yellow-600"})
+
+	// Lib directory structure
+	if isTypeScript {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"src/lib/types/index.ts", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/lib/validations/index.ts", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/lib/hooks/index.ts", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/store/index.tsx", "fab fa-react text-blue-400"},
+		)
+	} else {
+		filePaths = append(filePaths,
+			struct {
+				Path string
+				Icon string
+			}{"src/lib/types/index.js", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/lib/validations/index.js", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/lib/hooks/index.js", "fab fa-js text-blue-600"},
+			struct {
+				Path string
+				Icon string
+			}{"src/store/index.jsx", "fab fa-react text-blue-400"},
+		)
+	}
+
+	return buildFileTree(filePaths)
 }
 
 // generateNetHTTPRawSQLFileItems creates file items for net/http + raw SQL pattern

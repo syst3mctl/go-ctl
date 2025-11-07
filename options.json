@@ -199,5 +199,75 @@
       "description": "Add testing utilities and test examples.",
       "importPath": "github.com/stretchr/testify"
     }
-  ]
+  ],
+  "frontend": {
+    "languages": [
+      {
+        "id": "javascript",
+        "name": "JavaScript",
+        "description": "JavaScript with modern ES6+ features",
+        "importPath": ""
+      },
+      {
+        "id": "typescript",
+        "name": "TypeScript",
+        "description": "TypeScript for type-safe React development",
+        "importPath": ""
+      }
+    ],
+    "buildTools": [
+      {
+        "id": "vite",
+        "name": "Vite",
+        "description": "Next generation frontend tooling with fast HMR",
+        "importPath": ""
+      }
+    ],
+    "linters": [
+      {
+        "id": "eslint",
+        "name": "ESLint",
+        "description": "Find and fix problems in your JavaScript/TypeScript code",
+        "importPath": ""
+      }
+    ],
+    "features": [
+      {
+        "id": "prettier",
+        "name": "Prettier",
+        "description": "Opinionated code formatter for consistent style",
+        "importPath": ""
+      },
+      {
+        "id": "react-router",
+        "name": "React Router",
+        "description": "Declarative routing for React applications",
+        "importPath": ""
+      },
+      {
+        "id": "tailwind",
+        "name": "Tailwind CSS",
+        "description": "Utility-first CSS framework for rapid UI development",
+        "importPath": ""
+      },
+      {
+        "id": "vitest",
+        "name": "Vitest",
+        "description": "Fast unit test framework powered by Vite",
+        "importPath": ""
+      },
+      {
+        "id": "react-query",
+        "name": "TanStack Query",
+        "description": "Powerful data synchronization for React",
+        "importPath": ""
+      },
+      {
+        "id": "axios",
+        "name": "Axios",
+        "description": "Promise-based HTTP client for the browser",
+        "importPath": ""
+      }
+    ]
+  }
 }

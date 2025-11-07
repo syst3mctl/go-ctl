@@ -17,11 +17,20 @@ type Option struct {
 
 // ProjectOptions contains all available options for project generation
 type ProjectOptions struct {
-	GoVersions []string `json:"goVersions"`
-	Http       []Option `json:"http"`
-	Databases  []Option `json:"databases"`
-	DbDrivers  []Option `json:"dbDrivers"`
-	Features   []Option `json:"features"`
+	GoVersions []string        `json:"goVersions"`
+	Http       []Option        `json:"http"`
+	Databases  []Option         `json:"databases"`
+	DbDrivers  []Option         `json:"dbDrivers"`
+	Features   []Option         `json:"features"`
+	Frontend   *FrontendOptions `json:"frontend,omitempty"`
+}
+
+// FrontendOptions contains all available front-end options
+type FrontendOptions struct {
+	Languages []Option `json:"languages"`
+	BuildTools []Option `json:"buildTools"`
+	Linters   []Option `json:"linters"`
+	Features  []Option `json:"features"`
 }
 
 // DatabaseSelection represents a database with its selected driver
@@ -33,11 +42,22 @@ type DatabaseSelection struct {
 // ProjectConfig represents the user's selected configuration
 type ProjectConfig struct {
 	ProjectName    string              `json:"projectName"`
+	ProjectType    string              `json:"projectType"` // "backend", "frontend", or "fullstack"
 	GoVersion      string              `json:"goVersion"`
 	HttpPackage    Option              `json:"httpPackage"`
 	Databases      []DatabaseSelection `json:"databases"`
 	Features       []Option            `json:"features"`
 	CustomPackages []string            `json:"customPackages"`
+	FrontendConfig *FrontendConfig     `json:"frontendConfig,omitempty"`
+}
+
+// FrontendConfig represents the front-end project configuration
+type FrontendConfig struct {
+	Language      Option   `json:"language"`      // JavaScript or TypeScript
+	BuildTool     Option   `json:"buildTool"`    // Vite
+	Linter        Option   `json:"linter"`        // ESLint
+	Features      []Option `json:"features"`     // Prettier, React Router, Tailwind, etc.
+	CustomPackages []string `json:"customPackages"` // npm packages
 }
 
 // LoadOptions loads the project options from options.json file
@@ -80,25 +100,42 @@ func FindOptions(options []Option, ids []string) []Option {
 func ValidateConfig(config ProjectConfig) []string {
 	var warnings []string
 
-	// Check for incompatible combinations in selected databases
-	for _, dbSelection := range config.Databases {
-		if dbSelection.Database.ID == "mongodb" && dbSelection.Driver.ID == "gorm" {
-			warnings = append(warnings, "GORM does not support MongoDB. Consider using the MongoDB official driver instead.")
-		}
-
-		if dbSelection.Database.ID == "bigquery" && dbSelection.Driver.ID != "database-sql" {
-			warnings = append(warnings, "BigQuery works best with the standard database/sql driver.")
-		}
-	}
-
 	// Validate project name
 	if config.ProjectName == "" {
 		warnings = append(warnings, "Project name cannot be empty.")
 	}
 
-	// Validate Go version
-	if config.GoVersion == "" {
-		warnings = append(warnings, "Go version must be selected.")
+	// Validate backend configuration
+	if config.ProjectType == "backend" || config.ProjectType == "fullstack" {
+		// Check for incompatible combinations in selected databases
+		for _, dbSelection := range config.Databases {
+			if dbSelection.Database.ID == "mongodb" && dbSelection.Driver.ID == "gorm" {
+				warnings = append(warnings, "GORM does not support MongoDB. Consider using the MongoDB official driver instead.")
+			}
+
+			if dbSelection.Database.ID == "bigquery" && dbSelection.Driver.ID != "database-sql" {
+				warnings = append(warnings, "BigQuery works best with the standard database/sql driver.")
+			}
+		}
+
+		// Validate Go version
+		if config.GoVersion == "" {
+			warnings = append(warnings, "Go version must be selected.")
+		}
+	}
+
+	// Validate frontend configuration
+	if config.ProjectType == "frontend" || config.ProjectType == "fullstack" {
+		if config.FrontendConfig == nil {
+			warnings = append(warnings, "Frontend configuration is required for frontend projects.")
+		} else {
+			if config.FrontendConfig.Language.ID == "" {
+				warnings = append(warnings, "Frontend language must be selected.")
+			}
+			if config.FrontendConfig.BuildTool.ID == "" {
+				warnings = append(warnings, "Build tool must be selected.")
+			}
+		}
 	}
 
 	return warnings
