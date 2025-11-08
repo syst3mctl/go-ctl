@@ -6,6 +6,7 @@ const indexTemplate = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SYSCTL - Go Project Initializr | Generate Production-Ready Go Projects</title>
+    <link rel="icon" href="/static/Group110.svg" type="image/svg+xml">
     
     <!-- SEO Meta Tags -->
     <meta name="description" content="Generate production-ready Go projects with clean architecture. Free Go project initializer supporting Gin, Echo, Fiber, Chi, and net/http. Create Go web applications with PostgreSQL, MySQL, SQLite, MongoDB, Redis. Spring Boot Initializr for Go.">
@@ -1616,6 +1617,7 @@ const landingTemplate = `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SYSCTL - Go Project Initializer | Generate Production-Ready Go Projects Instantly</title>
+    <link rel="icon" href="/static/Group110.svg" type="image/svg+xml">
     
     <!-- SEO Meta Tags -->
     <meta name="description" content="SYSCTL Go Project Initializer - Generate production-ready Go projects instantly. Free tool to scaffold Go web applications with clean architecture, multiple HTTP frameworks, and database support. From idea to launch in seconds.">
