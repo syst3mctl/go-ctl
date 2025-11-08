@@ -624,13 +624,15 @@ const indexTemplate = `<!DOCTYPE html>
                         </label>
                         <input type="search"
                                name="q"
+                               id="package-search-input"
                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
                                placeholder="Search pkg.go.dev for packages..."
                                hx-get="/fetch-packages"
-                               hx-trigger="keyup changed delay:500ms"
+                               hx-trigger="keyup changed delay:500ms, input delay:500ms"
                                hx-target="#search-results"
                                hx-swap="innerHTML"
-                               hx-indicator="#search-loading">
+                               hx-indicator="#search-loading"
+                               oninput="handlePackageSearchInput(this)">
 
                         <!-- Loading indicator -->
                         <div id="search-loading" class="htmx-indicator text-center py-2">
@@ -1438,13 +1440,112 @@ const indexTemplate = `<!DOCTYPE html>
             }
         });
 
-        // Package search functionality
-        // Remove placeholder text when packages are selected
-        document.addEventListener('htmx:afterRequest', function(event) {
+        // Package management constants
+        const MAX_PACKAGES = 20;
+
+        // Package search input handler - clears results when input is empty
+        function handlePackageSearchInput(input) {
+            if (input.value.trim() === '') {
+                const searchResults = document.getElementById('search-results');
+                if (searchResults) {
+                    searchResults.innerHTML = '';
+                }
+            }
+        }
+
+        // Check if package is already selected
+        function isPackageSelected(pkgPath) {
+            const selectedPackages = document.getElementById('selected-packages');
+            if (!selectedPackages) return false;
+            
+            const hiddenInputs = selectedPackages.querySelectorAll('input[name="customPackages"]');
+            for (let input of hiddenInputs) {
+                if (input.value === pkgPath) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Get current package count
+        function getPackageCount() {
+            const selectedPackages = document.getElementById('selected-packages');
+            if (!selectedPackages) return 0;
+            
+            const hiddenInputs = selectedPackages.querySelectorAll('input[name="customPackages"]');
+            return hiddenInputs.length;
+        }
+
+        // Add package to selection
+        function addPackage(pkgPath) {
+            // Check for duplicates
+            if (isPackageSelected(pkgPath)) {
+                alert('This package is already selected.');
+                return;
+            }
+
+            // Check package limit
+            if (getPackageCount() >= MAX_PACKAGES) {
+                alert('Maximum of ' + MAX_PACKAGES + ' packages allowed. Please remove some packages before adding more.');
+                return;
+            }
+
+            // Generate unique ID for the package element
+            const pkgID = pkgPath.replace(/\//g, '-').replace(/\./g, '-');
+
+            // Create package element
+            const packageDiv = document.createElement('div');
+            packageDiv.id = 'pkg-' + pkgID;
+            packageDiv.className = 'flex items-center justify-between bg-blue-100 border border-blue-200 rounded-lg p-2';
+            packageDiv.innerHTML = 
+                '<div class="flex items-center">' +
+                    '<i class="fas fa-cube text-blue-600 mr-2"></i>' +
+                    '<span class="text-sm font-medium text-blue-800">' + escapeHtml(pkgPath) + '</span>' +
+                '</div>' +
+                '<input type="hidden" name="customPackages" value="' + escapeHtml(pkgPath) + '">' +
+                '<button type="button" onclick="removePackage(\'' + pkgID + '\', \'' + escapeHtml(pkgPath) + '\')" class="text-red-500 hover:text-red-700 font-bold text-sm ml-2 transition duration-150">' +
+                    '<i class="fas fa-times"></i>' +
+                '</button>';
+
+            // Remove placeholder if it exists
             const selectedPackages = document.getElementById('selected-packages');
             const placeholder = selectedPackages.querySelector('p.italic');
-            if (placeholder && selectedPackages.children.length > 1) {
+            if (placeholder) {
                 placeholder.remove();
+            }
+
+            // Add package to container
+            selectedPackages.appendChild(packageDiv);
+        }
+
+        // Remove package from selection
+        function removePackage(pkgID, pkgPath) {
+            const packageElement = document.getElementById('pkg-' + pkgID);
+            if (packageElement) {
+                packageElement.remove();
+                
+                // Show placeholder if no packages remain
+                const selectedPackages = document.getElementById('selected-packages');
+                const hiddenInputs = selectedPackages.querySelectorAll('input[name="customPackages"]');
+                if (hiddenInputs.length === 0) {
+                    const placeholder = document.createElement('p');
+                    placeholder.className = 'text-sm text-gray-500 italic';
+                    placeholder.textContent = 'No packages selected';
+                    selectedPackages.appendChild(placeholder);
+                }
+            }
+        }
+
+        // Package search functionality
+        // Remove placeholder text when packages are selected (for HTMX responses)
+        document.addEventListener('htmx:afterRequest', function(event) {
+            // Only handle add-package requests
+            if (event.detail.pathInfo.requestPath === '/add-package') {
+                const selectedPackages = document.getElementById('selected-packages');
+                const placeholder = selectedPackages.querySelector('p.italic');
+                if (placeholder && selectedPackages.children.length > 1) {
+                    placeholder.remove();
+                }
             }
         });
 
@@ -1473,6 +1574,9 @@ const indexTemplate = `<!DOCTYPE html>
         // Ensure functions are globally accessible
         window.toggleFolder = toggleFolder;
         window.selectFile = selectFile;
+        window.addPackage = addPackage;
+        window.removePackage = removePackage;
+        window.handlePackageSearchInput = handlePackageSearchInput;
     </script>
 </body>
 </html>`
@@ -1520,10 +1624,7 @@ const searchResultsTemplate = `
             <div class="text-xs mt-1 truncate" style="color: #b0b0b0;">{{.Synopsis}}</div>
         </div>
         <button type="button"
-                hx-post="/add-package"
-                hx-vals='{"pkgPath": "{{.Path}}"}'
-                hx-target="#selected-packages"
-                hx-swap="beforeend"
+                onclick="addPackage('{{.Path}}')"
                 class="ml-3 text-white px-3 py-1 rounded text-sm font-medium transition duration-150 flex items-center"
                 style="background-color: #11A32B;">
             <i class="fas fa-plus mr-1"></i>Add
@@ -1550,8 +1651,7 @@ const selectedPackageTemplate = `
     <input type="hidden" name="customPackages" value="{{.PkgPath}}">
 
     <button type="button"
-            hx-target="#pkg-{{.ID}}"
-            hx-swap="delete"
+            onclick="removePackage('{{.ID}}', '{{.PkgPath}}')"
             class="text-red-500 hover:text-red-700 font-bold text-sm ml-2 transition duration-150">
         <i class="fas fa-times"></i>
     </button>
