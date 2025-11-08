@@ -182,6 +182,15 @@ const indexTemplate = `<!DOCTYPE html>
         body {
             background-color: #1a1a1a;
             color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Container spacing fix */
+        .container {
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
         }
         
         .bg-white {
@@ -346,6 +355,38 @@ const indexTemplate = `<!DOCTYPE html>
             color: #ffffff !important;
         }
         
+        /* Language options - unselected state */
+        .language-option {
+            background-color: #252525 !important;
+            border: 2px solid #11A32B !important;
+        }
+        
+        .language-option:hover {
+            background-color: #2d2d2d !important;
+        }
+        
+        /* Language options - selected state */
+        input[type="radio"]:checked + label.language-option,
+        .language-option.selected {
+            background-color: #11A32B !important;
+            border-color: #11A32B !important;
+        }
+        
+        input[type="radio"]:checked + label.language-option .font-semibold,
+        .language-option.selected .font-semibold {
+            color: #ffffff !important;
+        }
+        
+        input[type="radio"]:checked + label.language-option .text-sm,
+        .language-option.selected .text-sm {
+            color: #e0e0e0 !important;
+        }
+        
+        input[type="radio"]:checked + label.language-option .fas,
+        .language-option.selected .fas {
+            color: #ffffff !important;
+        }
+        
         /* Radio button labels - selected state (more visible) */
         .peer-checked\:bg-blue-50 {
             background-color: #11A32B !important;
@@ -457,8 +498,8 @@ const indexTemplate = `<!DOCTYPE html>
 </head>
 <body class="min-h-screen">
     <!-- Header -->
-    <header style="padding: 1.5rem 0; background-color: #1a1a1a; position: relative;">
-        <div class="container mx-auto px-6">
+    <header style="padding: 1rem 0; background-color: #1a1a1a; position: relative;">
+        <div class="container mx-auto px-4">
             <div class="flex items-center justify-between">
                 <div style="display: flex; flex-direction: column;">
                     <div style="width: 60px; height: 3px; background-color: #11A32B; margin-bottom: 0.5rem;"></div>
@@ -476,7 +517,7 @@ const indexTemplate = `<!DOCTYPE html>
         </div>
     </header>
 
-    <div class="container mx-auto px-6 py-8">
+    <div class="container mx-auto px-4 py-4">
         <div class="grid grid-cols-1 lg:grid-cols-1 gap-8">
 
             <!-- Left Side: Configuration Form -->
@@ -738,13 +779,14 @@ const indexTemplate = `<!DOCTYPE html>
                                            {{if eq .ID "typescript"}}checked{{end}}
                                            class="sr-only peer">
                                     <label for="lang-{{.ID}}"
-                                           class="flex p-3 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-50 peer-checked:border-blue-500 hover:bg-gray-100">
+                                           class="flex p-3 rounded-lg cursor-pointer transition-all duration-200 language-option"
+                                           style="background-color: #252525; border: 2px solid #11A32B;">
                                         <div class="flex-1">
-                                            <div class="font-semibold text-gray-800">{{.Name}}</div>
-                                            <div class="text-sm text-gray-600">{{.Description}}</div>
+                                            <div class="font-semibold" style="color: #ffffff;">{{.Name}}</div>
+                                            <div class="text-sm" style="color: #b0b0b0;">{{.Description}}</div>
                                         </div>
                                         <div class="flex-shrink-0 ml-2">
-                                            <i class="fas fa-check-circle text-blue-500 opacity-0 peer-checked:opacity-100"></i>
+                                            <i class="fas fa-check-circle opacity-0 peer-checked:opacity-100" style="font-size: 1.25rem; color: #11A32B;"></i>
                                         </div>
                                     </label>
                                 </div>
@@ -1169,6 +1211,28 @@ const indexTemplate = `<!DOCTYPE html>
             
             // Set initial state
             updateFrontendFrameworkSelection();
+            
+            // Handle Language selection
+            function updateLanguageSelection() {
+                document.querySelectorAll('input[name="frontendLanguage"]').forEach(radio => {
+                    const label = document.querySelector('label[for="' + radio.id + '"]');
+                    if (label && label.classList.contains('language-option')) {
+                        if (radio.checked) {
+                            label.classList.add('selected');
+                        } else {
+                            label.classList.remove('selected');
+                        }
+                    }
+                });
+            }
+            
+            // Add event listeners to Language radio buttons
+            document.querySelectorAll('input[name="frontendLanguage"]').forEach(radio => {
+                radio.addEventListener('change', updateLanguageSelection);
+            });
+            
+            // Set initial state
+            updateLanguageSelection();
         });
         // File tree and explorer functions
         // Initialize file tree - expand root folders automatically
@@ -1771,7 +1835,7 @@ const landingTemplate = `<!DOCTYPE html>
         .container {
             max-width: 1400px;
             // margin: 0 auto;
-            padding: 0 2rem;
+            padding: 0 1rem;
         }
         
         /* Header */
