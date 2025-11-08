@@ -5,7 +5,31 @@ const indexTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYSCTL - Go Project Initializr</title>
+    <title>SYSCTL - Go Project Initializr | Generate Production-Ready Go Projects</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Generate production-ready Go projects with clean architecture. Free Go project initializer supporting Gin, Echo, Fiber, Chi, and net/http. Create Go web applications with PostgreSQL, MySQL, SQLite, MongoDB, Redis. Spring Boot Initializr for Go.">
+    <meta name="keywords" content="go project generator, go initializer, go project scaffold, go boilerplate, go web framework, clean architecture go, go project setup, golang generator, go project template, spring boot initializr go, go web application generator, scaffold go projects">
+    <meta name="author" content="systemctl">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <link rel="canonical" href="https://go-ctl.systemctl.dev/generator">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://go-ctl.systemctl.dev/generator">
+    <meta property="og:title" content="SYSCTL - Go Project Initializr | Generate Production-Ready Go Projects">
+    <meta property="og:description" content="Generate production-ready Go projects with clean architecture. Free Go project initializer supporting Gin, Echo, Fiber, Chi, and net/http. Create Go web applications with PostgreSQL, MySQL, SQLite, MongoDB, Redis.">
+    <meta property="og:image" content="https://go-ctl.systemctl.dev/static/Group110.svg">
+    <meta property="og:site_name" content="SYSCTL Go Project Initializr">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://go-ctl.systemctl.dev/generator">
+    <meta property="twitter:title" content="SYSCTL - Go Project Initializr | Generate Production-Ready Go Projects">
+    <meta property="twitter:description" content="Generate production-ready Go projects with clean architecture. Free Go project initializer supporting Gin, Echo, Fiber, Chi, and net/http.">
+    <meta property="twitter:image" content="https://go-ctl.systemctl.dev/static/Group110.svg">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
@@ -397,6 +421,38 @@ const indexTemplate = `<!DOCTYPE html>
             color: #0d8a22 !important;
         }
     </style>
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "SYSCTL Go Project Initializr",
+        "description": "Generate production-ready Go projects with clean architecture. Free Go project initializer supporting Gin, Echo, Fiber, Chi, and net/http. Create Go web applications with PostgreSQL, MySQL, SQLite, MongoDB, Redis.",
+        "url": "https://go-ctl.systemctl.dev/generator",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Go project generation",
+            "Clean architecture templates",
+            "Multiple HTTP framework support (Gin, Echo, Fiber, Chi, net/http)",
+            "Database integration (PostgreSQL, MySQL, SQLite, MongoDB, Redis)",
+            "Production-ready project structure",
+            "Interactive project explorer",
+            "Package dependency management"
+        ],
+        "creator": {
+            "@type": "Organization",
+            "name": "systemctl",
+            "url": "https://github.com/syst3mctl/go-ctl"
+        }
+    }
+    </script>
 </head>
 <body class="min-h-screen">
     <!-- Header -->
@@ -1559,7 +1615,31 @@ const landingTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYSCTL - Go Project Initializer</title>
+    <title>SYSCTL - Go Project Initializer | Generate Production-Ready Go Projects Instantly</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="SYSCTL Go Project Initializer - Generate production-ready Go projects instantly. Free tool to scaffold Go web applications with clean architecture, multiple HTTP frameworks, and database support. From idea to launch in seconds.">
+    <meta name="keywords" content="go project generator, go initializer, go project scaffold, go boilerplate, go web framework, clean architecture go, go project setup, golang generator, go project template, spring boot initializr go, go web application generator, scaffold go projects, free go initializer">
+    <meta name="author" content="systemctl">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <link rel="canonical" href="https://go-ctl.systemctl.dev/">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://go-ctl.systemctl.dev/">
+    <meta property="og:title" content="SYSCTL - Go Project Initializer | Generate Production-Ready Go Projects Instantly">
+    <meta property="og:description" content="SYSCTL Go Project Initializer - Generate production-ready Go projects instantly. Free tool to scaffold Go web applications with clean architecture, multiple HTTP frameworks, and database support. From idea to launch in seconds.">
+    <meta property="og:image" content="https://go-ctl.systemctl.dev/static/Group110.svg">
+    <meta property="og:site_name" content="SYSCTL Go Project Initializer">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://go-ctl.systemctl.dev/">
+    <meta property="twitter:title" content="SYSCTL - Go Project Initializer | Generate Production-Ready Go Projects Instantly">
+    <meta property="twitter:description" content="SYSCTL Go Project Initializer - Generate production-ready Go projects instantly. Free tool to scaffold Go web applications with clean architecture.">
+    <meta property="twitter:image" content="https://go-ctl.systemctl.dev/static/Group110.svg">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
@@ -1854,6 +1934,44 @@ const landingTemplate = `<!DOCTYPE html>
             }
         }
     </style>
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "SYSCTL Go Project Initializer",
+        "description": "SYSCTL Go Project Initializer - Generate production-ready Go projects instantly. Free tool to scaffold Go web applications with clean architecture, multiple HTTP frameworks, and database support. From idea to launch in seconds.",
+        "url": "https://go-ctl.systemctl.dev/",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "Go project generation",
+            "Clean architecture templates",
+            "Multiple HTTP framework support (Gin, Echo, Fiber, Chi, net/http)",
+            "Database integration (PostgreSQL, MySQL, SQLite, MongoDB, Redis)",
+            "Production-ready project structure",
+            "Interactive project explorer",
+            "Package dependency management",
+            "Frontend framework support (React, Angular, Vue, Svelte, Solid)"
+        ],
+        "creator": {
+            "@type": "Organization",
+            "name": "systemctl",
+            "url": "https://github.com/syst3mctl/go-ctl"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "5",
+            "ratingCount": "1"
+        }
+    }
+    </script>
 </head>
 <body>
     <!-- Header -->
