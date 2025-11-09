@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -170,11 +171,16 @@ func handleLanding(w http.ResponseWriter, r *http.Request) {
 		TotalDownloads:   stats.TotalDownloads,
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.Execute(w, data); err != nil {
+	// Execute template to buffer first to avoid partial writes
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
 		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Write headers and content only after successful template execution
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(buf.Bytes())
 }
 
 // handleIndex serves the main project generator page
@@ -202,11 +208,16 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		Options: appOptions,
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.Execute(w, data); err != nil {
+	// Execute template to buffer first to avoid partial writes
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
 		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Write headers and content only after successful template execution
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(buf.Bytes())
 }
 
 // handleGenerate processes the form submission and generates a project ZIP
@@ -443,10 +454,15 @@ func handleExplore(w http.ResponseWriter, r *http.Request) {
 		Config: config,
 	}
 
-	if err := tmpl.Execute(w, data); err != nil {
+	// Execute template to buffer first to avoid partial writes
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		return
 	}
+
+	// Write content only after successful template execution
+	w.Write(buf.Bytes())
 }
 
 // handleSearchPackages searches pkg.go.dev for packages (legacy endpoint)
@@ -588,11 +604,16 @@ func handleFetchPackages(w http.ResponseWriter, r *http.Request) {
 			Query:   options.Query,
 		}
 
-		w.Header().Set("Content-Type", "text/html")
-		if err := tmpl.Execute(w, data); err != nil {
+		// Execute template to buffer first to avoid partial writes
+		var buf bytes.Buffer
+		if err := tmpl.Execute(&buf, data); err != nil {
 			http.Error(w, "Failed to render search results", http.StatusInternalServerError)
 			return
 		}
+
+		// Write headers and content only after successful template execution
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(buf.Bytes())
 	}
 }
 
@@ -760,11 +781,16 @@ func handleAddPackage(w http.ResponseWriter, r *http.Request) {
 		ID:      pkgID,
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.Execute(w, data); err != nil {
+	// Execute template to buffer first to avoid partial writes
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
 		http.Error(w, "Failed to render package item", http.StatusInternalServerError)
 		return
 	}
+
+	// Write headers and content only after successful template execution
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(buf.Bytes())
 }
 
 // handleSearchNpmPackages searches npm registry for packages
@@ -860,11 +886,16 @@ func renderNpmSearchResults(w http.ResponseWriter, results []NpmPackageResult, q
 		Query:   query,
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.Execute(w, data); err != nil {
+	// Execute template to buffer first to avoid partial writes
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
 		http.Error(w, "Failed to render npm search results", http.StatusInternalServerError)
 		return
 	}
+
+	// Write headers and content only after successful template execution
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(buf.Bytes())
 }
 
 // handleAddNpmPackage adds an npm package to the selected packages list
@@ -901,11 +932,16 @@ func handleAddNpmPackage(w http.ResponseWriter, r *http.Request) {
 		ID:      pkgID,
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.Execute(w, data); err != nil {
+	// Execute template to buffer first to avoid partial writes
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
 		http.Error(w, "Failed to render npm package item", http.StatusInternalServerError)
 		return
 	}
+
+	// Write headers and content only after successful template execution
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(buf.Bytes())
 }
 
 // npm cache methods
