@@ -4,7 +4,7 @@ const indexTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>SYSCTL - Go Project Initializr | Generate Production-Ready Go Projects</title>
     <link rel="icon" href="/static/Group110.svg" type="image/svg+xml">
     
@@ -150,10 +150,23 @@ const indexTemplate = `<!DOCTYPE html>
         .file-tree-container {
             max-height: calc(80vh - 200px);
             overflow-y: auto;
+            overflow-x: hidden;
         }
         .file-content-container {
             max-height: calc(80vh - 200px);
             overflow-y: auto;
+            overflow-x: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .file-tree-container {
+                max-height: calc(50vh - 100px);
+                font-size: 0.875rem;
+            }
+            .file-content-container {
+                max-height: calc(50vh - 100px);
+                font-size: 0.875rem;
+            }
         }
         
         /* Tab Styles */
@@ -191,6 +204,198 @@ const indexTemplate = `<!DOCTYPE html>
             max-width: 1400px;
             margin-left: auto;
             margin-right: auto;
+            padding-left: clamp(0.5rem, 2vw, 1rem);
+            padding-right: clamp(0.5rem, 2vw, 1rem);
+            width: 100%;
+        }
+        
+        /* Responsive Typography */
+        body {
+            font-size: clamp(14px, 2vw, 16px);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        
+        /* Touch-friendly interactive elements */
+        button,
+        input[type="button"],
+        input[type="submit"],
+        a.button,
+        label {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        input[type="text"],
+        input[type="search"],
+        input[type="email"],
+        select,
+        textarea {
+            min-height: 44px;
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.75rem;
+        }
+        
+        /* Responsive Tab Buttons */
+        .tab-button {
+            min-height: 44px;
+            padding: 0.75rem 1rem;
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 640px) {
+            .tab-button {
+                flex: 1;
+                min-width: 0;
+                padding: 0.75rem 0.5rem;
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Modal Responsive Styles */
+        #explore-modal {
+            padding: 0;
+        }
+        
+        @media (max-width: 768px) {
+            #explore-modal {
+                padding: 0;
+                margin: 0;
+                max-width: 100vw;
+                max-height: 100vh;
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            #explore-modal > div {
+                width: 100%;
+                height: 100vh;
+                max-width: 100vw;
+                max-height: 100vh;
+                border-radius: 0;
+                flex-direction: column;
+            }
+            
+            #explore-modal .file-tree-container,
+            #explore-modal .file-content-container {
+                max-height: calc(50vh - 100px);
+            }
+        }
+        
+        /* File Explorer Modal Layout */
+        @media (max-width: 768px) {
+            #explore-modal .flex.flex-1.overflow-hidden {
+                flex-direction: column;
+            }
+            
+            #explore-modal .w-1\/3 {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #404040;
+                max-height: 50vh;
+            }
+            
+            #explore-modal .flex-1.overflow-hidden:last-child {
+                width: 100%;
+                max-height: 50vh;
+            }
+        }
+        
+        /* Form Grid Responsive */
+        @media (max-width: 640px) {
+            .grid.grid-cols-1.md\:grid-cols-2,
+            .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+        }
+        
+        /* Card Responsive Padding */
+        @media (max-width: 640px) {
+            .bg-white.rounded-lg.shadow-lg {
+                padding: 1rem !important;
+            }
+        }
+        
+        /* Search Results Responsive */
+        @media (max-width: 640px) {
+            #search-results,
+            #npm-search-results {
+                max-height: 200px;
+                font-size: 0.875rem;
+            }
+            
+            #selected-packages,
+            #selected-npm-packages {
+                max-height: 150px;
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Button Groups Responsive */
+        @media (max-width: 640px) {
+            .flex.gap-4 button,
+            .flex.gap-4 a {
+                width: 100%;
+                margin: 0;
+            }
+        }
+        
+        /* Framework Options Responsive */
+        @media (max-width: 640px) {
+            .http-framework-option,
+            .frontend-framework-option,
+            .language-option {
+                padding: 1rem 0.75rem;
+                min-height: 60px;
+            }
+        }
+        
+        /* Large Screen Optimizations */
+        @media (min-width: 1920px) {
+            .container {
+                max-width: 1600px;
+            }
+        }
+        
+        /* Landscape Mobile Adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #explore-modal .file-tree-container,
+            #explore-modal .file-content-container {
+                max-height: calc(100vh - 150px);
+            }
+        }
+        
+        /* Back arrow link animation */
+        .back-arrow-link {
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        
+        .back-arrow-link:hover {
+            color: #11A32B;
+        }
+        
+        .back-arrow-svg {
+            transition: transform 0.3s ease;
+        }
+        
+        .back-arrow-link:hover .back-arrow-svg {
+            transform: translateX(-4px);
+        }
+        
+        .back-arrow-line {
+            transition: stroke-dashoffset 0.3s ease;
+        }
+        
+        .back-arrow-link:hover .back-arrow-line {
+            stroke-dashoffset: 0;
         }
         
         .bg-white {
@@ -509,9 +714,11 @@ const indexTemplate = `<!DOCTYPE html>
                         </div>
                     </div>
                 </div>
-                <a href="/" class="text-white hover:opacity-80 transition-opacity flex items-center gap-2">
-                    <i class="fas fa-home"></i>
-                    <span>Back to Home</span>
+                <a href="/" class="back-arrow-link flex items-center">
+                    <svg class="back-arrow-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path class="back-arrow-line" d="M20 12H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="20" stroke-dashoffset="20"/>
+                        <path class="back-arrow-head" d="M10 18L4 12L10 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </a>
             </div>
         </div>
@@ -915,25 +1122,25 @@ const indexTemplate = `<!DOCTYPE html>
 
         <!-- Explore Modal -->
         <div id="explore-modal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden z-50" onclick="closeExploreModal(event)">
-            <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="bg-white rounded-lg shadow-2xl w-full max-w-7xl h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-center min-h-screen p-0 md:p-4">
+                <div class="bg-white rounded-none md:rounded-lg shadow-2xl w-full h-full md:h-[85vh] md:max-w-7xl flex flex-col" onclick="event.stopPropagation()">
                     <!-- Modal Header -->
-                    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
                         <div class="flex items-center">
-                            <i class="fas fa-folder-open text-2xl text-blue-600 mr-3"></i>
-                            <h2 class="text-2xl font-bold text-gray-800">Project Explorer</h2>
+                            <i class="fas fa-folder-open text-xl md:text-2xl text-blue-600 mr-2 md:mr-3"></i>
+                            <h2 class="text-lg md:text-2xl font-bold text-gray-800">Project Explorer</h2>
                         </div>
-                        <button onclick="closeExploreModal()" class="text-gray-400 hover:text-gray-600 transition duration-200">
-                            <i class="fas fa-times text-2xl"></i>
+                        <button onclick="closeExploreModal()" class="text-gray-400 hover:text-gray-600 transition duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                            <i class="fas fa-times text-xl md:text-2xl"></i>
                         </button>
                     </div>
 
                     <!-- Modal Body -->
-                    <div class="flex flex-1 overflow-hidden">
+                    <div class="flex flex-col md:flex-row flex-1 overflow-hidden">
                         <!-- File Tree Sidebar -->
-                        <div class="w-1/3 border-r border-gray-200 bg-gray-50">
-                            <div class="p-4 h-full flex flex-col">
-                                <h3 class="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+                        <div class="w-full md:w-1/3 border-r-0 md:border-r border-b md:border-b-0 border-gray-200 bg-gray-50 md:max-h-full max-h-[50vh]">
+                            <div class="p-3 md:p-4 h-full flex flex-col">
+                                <h3 class="text-base md:text-lg font-semibold text-gray-700 mb-2 md:mb-3 flex items-center">
                                     <i class="fas fa-folder-tree mr-2 text-blue-600"></i>
                                     Explorer
                                 </h3>
@@ -947,17 +1154,17 @@ const indexTemplate = `<!DOCTYPE html>
                         </div>
 
                         <!-- File Content Area -->
-                        <div class="flex-1 flex flex-col bg-gray-900">
+                        <div class="flex-1 flex flex-col bg-gray-900 md:max-h-full max-h-[50vh]">
                             <!-- File Header -->
-                            <div class="p-3 border-b border-gray-700 bg-gray-800">
-                                <div class="flex items-center justify-between">
-                                    <div id="current-file-header" class="flex items-center text-gray-300">
-                                        <i class="fas fa-file-code mr-2"></i>
-                                        <span class="text-sm">Select a file to preview</span>
+                            <div class="p-2 md:p-3 border-b border-gray-700 bg-gray-800">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div id="current-file-header" class="flex items-center text-gray-300 min-w-0 flex-1">
+                                        <i class="fas fa-file-code mr-2 flex-shrink-0"></i>
+                                        <span class="text-xs md:text-sm truncate">Select a file to preview</span>
                                     </div>
-                                    <div class="flex items-center space-x-2">
-                                        <button onclick="copyFileContent()" id="copy-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition duration-200">
-                                            <i class="fas fa-copy mr-1"></i>Copy
+                                    <div class="flex items-center space-x-2 flex-shrink-0">
+                                        <button onclick="copyFileContent()" id="copy-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-2 md:px-3 py-1 md:py-1 rounded text-xs transition duration-200 min-h-[32px]">
+                                            <i class="fas fa-copy mr-1"></i><span class="hidden sm:inline">Copy</span>
                                         </button>
                                     </div>
                                 </div>
@@ -979,16 +1186,16 @@ const indexTemplate = `<!DOCTYPE html>
                     </div>
 
                     <!-- Modal Footer -->
-                    <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                        <div class="text-sm text-gray-600">
+                    <div class="p-3 md:p-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-3">
+                        <div class="text-xs md:text-sm text-gray-600 text-center md:text-left">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Click files to preview content • All files will be included in the download
+                            <span class="hidden sm:inline">Click files to preview content • </span>All files will be included in the download
                         </div>
-                        <div class="flex space-x-3">
-                            <button onclick="closeExploreModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition duration-200">
+                        <div class="flex gap-2 md:gap-3 w-full md:w-auto">
+                            <button onclick="closeExploreModal()" class="flex-1 md:flex-none bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 md:py-2 rounded transition duration-200 min-h-[44px]">
                                 Close
                             </button>
-                            <button onclick="downloadProject()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition duration-200">
+                            <button onclick="downloadProject()" class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:py-2 rounded transition duration-200 min-h-[44px]">
                                 <i class="fas fa-download mr-2"></i>Download Project
                             </button>
                         </div>
@@ -1779,7 +1986,7 @@ const landingTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>SYSCTL - Go Project Initializer | Generate Production-Ready Go Projects Instantly</title>
     <link rel="icon" href="/static/Group110.svg" type="image/svg+xml">
     
@@ -1821,26 +2028,31 @@ const landingTemplate = `<!DOCTYPE html>
             font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: #1a1a1a;
             color: #ffffff;
+            min-height: 100vh;
             height: 100vh;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             margin: 0;
             padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         html {
             scroll-behavior: smooth;
-            overflow: hidden;
+            overflow-x: hidden;
         }
         
         .container {
             max-width: 1400px;
-            // margin: 0 auto;
-            padding: 0 1rem;
+            margin: 0 auto;
+            padding: 0 clamp(0.5rem, 2vw, 1rem);
+            width: 100%;
         }
         
         /* Header */
         header {
-            padding: 1.5rem 0;
+            padding: clamp(1rem, 2vw, 1.5rem) 0;
             position: relative;
         }
         
@@ -1848,6 +2060,8 @@ const landingTemplate = `<!DOCTYPE html>
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
         
         .logo-section {
@@ -1856,7 +2070,7 @@ const landingTemplate = `<!DOCTYPE html>
         }
         
         .green-accent-line {
-            width: 60px;
+            width: clamp(40px, 8vw, 60px);
             height: 3px;
             background-color: #11A32B;
             margin-bottom: 0.5rem;
@@ -1865,12 +2079,14 @@ const landingTemplate = `<!DOCTYPE html>
         .logo {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: clamp(0.5rem, 2vw, 1rem);
         }
         
         .logo-icon {
-            width: 48px;
-            height: 48px;
+            width: clamp(36px, 8vw, 48px);
+            height: clamp(36px, 8vw, 48px);
+            min-width: 36px;
+            min-height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1883,81 +2099,122 @@ const landingTemplate = `<!DOCTYPE html>
         }
         
         .logo-text {
-            font-size: 2rem;
+            font-size: clamp(1.25rem, 4vw, 2rem);
             font-weight: 700;
             letter-spacing: -0.5px;
         }
         
         .nav-links {
             display: flex;
-            gap: 1.5rem;
+            gap: clamp(0.75rem, 3vw, 1.5rem);
             align-items: center;
-            font-size: 0.9rem;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
             color: #ffffff;
+            flex-wrap: wrap;
         }
         
         .nav-links a {
             color: #ffffff;
             text-decoration: none;
             transition: opacity 0.2s;
+            padding: 0.5rem;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
         }
         
         .nav-links a:hover {
             opacity: 0.7;
         }
         
+        .nav-links span {
+            display: none;
+        }
+        
+        @media (min-width: 480px) {
+            .nav-links span {
+                display: inline;
+            }
+        }
+        
         /* Main Content Wrapper */
         .main-wrapper {
-            height: calc(100vh - 120px);
+            min-height: calc(100vh - clamp(80px, 15vw, 120px));
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            overflow: hidden;
+            overflow-x: hidden;
         }
         
         /* Hero Section */
         .hero {
             flex: 1;
             display: flex;
-            flex-direction: row;
-            justify-content: space-between;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            padding: 2rem 0;
+            padding: clamp(1rem, 4vw, 2rem) 0;
             position: relative;
+            gap: clamp(1.5rem, 5vw, 3rem);
+        }
+        
+        @media (min-width: 1024px) {
+            .hero {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
         }
         
         .hero-left {
             flex: 1;
-            max-width: 60%;
+            width: 100%;
+            max-width: 100%;
+            text-align: center;
+        }
+        
+        @media (min-width: 1024px) {
+            .hero-left {
+                max-width: 60%;
+                text-align: left;
+            }
         }
         
         .hero-heading {
-            font-size: 4rem;
+            font-size: clamp(2rem, 8vw, 4rem);
             font-weight: 700;
             line-height: 1.1;
-            margin-bottom: 1.5rem;
-            letter-spacing: -2px;
+            margin-bottom: clamp(1rem, 3vw, 1.5rem);
+            letter-spacing: clamp(-1px, -0.5vw, -2px);
         }
         
         .hero-right {
             flex: 1;
-            text-align: right;
-            max-width: 40%;
+            width: 100%;
+            max-width: 100%;
+            text-align: center;
+        }
+        
+        @media (min-width: 1024px) {
+            .hero-right {
+                max-width: 40%;
+                text-align: right;
+            }
         }
         
         .hero-subheading {
-            font-size: 4rem;
+            font-size: clamp(2rem, 8vw, 4rem);
             font-weight: 700;
             line-height: 1.1;
-            letter-spacing: -2px;
+            letter-spacing: clamp(-1px, -0.5vw, -2px);
         }
         
         /* Green Accent Bar */
         .accent-bar {
             background-color: #11A32B;
             width: 100%;
-            padding: 1rem 0;
-            margin: 1.5rem 0;
+            padding: clamp(0.75rem, 2vw, 1rem) 0;
+            margin: clamp(1rem, 3vw, 1.5rem) 0;
             overflow: hidden;
             position: relative;
             flex-shrink: 0;
@@ -1965,18 +2222,25 @@ const landingTemplate = `<!DOCTYPE html>
         
         .accent-bar-content {
             display: flex;
-            gap: 3rem;
+            gap: clamp(1.5rem, 5vw, 3rem);
             white-space: nowrap;
             animation: scroll 30s linear infinite;
         }
         
         .accent-bar-item {
-            font-size: 1.2rem;
+            font-size: clamp(0.75rem, 2.5vw, 1.2rem);
             font-weight: 600;
             color: #ffffff;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: clamp(1px, 0.5vw, 2px);
             opacity: 0.9;
+            flex-shrink: 0;
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            .accent-bar-content {
+                animation: none;
+            }
         }
         
         @keyframes scroll {
@@ -1991,25 +2255,34 @@ const landingTemplate = `<!DOCTYPE html>
         /* Stats Section */
         .stats-section {
             display: flex;
-            gap: 2rem;
-            margin: 1.5rem 0;
-            font-size: 1rem;
+            flex-wrap: wrap;
+            gap: clamp(1rem, 4vw, 2rem);
+            margin: clamp(1rem, 3vw, 1.5rem) 0;
+            font-size: clamp(0.9rem, 2vw, 1rem);
+            justify-content: center;
+        }
+        
+        @media (min-width: 1024px) {
+            .stats-section {
+                justify-content: flex-start;
+            }
         }
         
         .stat-item {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            min-width: 120px;
         }
         
         .stat-number {
-            font-size: 2rem;
+            font-size: clamp(1.5rem, 5vw, 2rem);
             font-weight: 700;
             color: #11A32B;
         }
         
         .stat-label {
-            font-size: 0.85rem;
+            font-size: clamp(0.7rem, 1.8vw, 0.85rem);
             opacity: 0.8;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -2018,29 +2291,52 @@ const landingTemplate = `<!DOCTYPE html>
         /* CTA Buttons */
         .cta-section {
             display: flex;
-            gap: 1.5rem;
-            margin-top: 1.5rem;
+            flex-direction: column;
+            gap: clamp(0.75rem, 3vw, 1.5rem);
+            margin-top: clamp(1rem, 3vw, 1.5rem);
             flex-shrink: 0;
+            width: 100%;
+        }
+        
+        @media (min-width: 640px) {
+            .cta-section {
+                flex-direction: row;
+            }
         }
         
         .cta-button {
-            padding: 0.875rem 2rem;
+            padding: clamp(0.75rem, 2vw, 0.875rem) clamp(1.5rem, 4vw, 2rem);
             border: 2px solid #ffffff;
             background-color: transparent;
             color: #ffffff;
-            font-size: 0.95rem;
+            font-size: clamp(0.85rem, 2vw, 0.95rem);
             font-weight: 600;
             text-decoration: none;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
             cursor: pointer;
+            min-height: 44px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        @media (min-width: 640px) {
+            .cta-button {
+                width: auto;
+            }
         }
         
         .cta-button:hover {
             background-color: #ffffff;
             color: #1a1a1a;
+            transform: translateY(-2px);
+        }
+        
+        .cta-button:active {
+            transform: translateY(0);
         }
         
         .cta-button.primary {
@@ -2053,50 +2349,75 @@ const landingTemplate = `<!DOCTYPE html>
             border-color: #0d8a22;
         }
         
-        
-        /* Responsive */
-        @media (max-width: 1024px) {
+        /* Responsive Breakpoints */
+        @media (max-width: 320px) {
+            .container {
+                padding: 0 0.5rem;
+            }
+            
             .hero-heading,
             .hero-subheading {
-                font-size: 3rem;
+                font-size: 1.75rem;
             }
             
-            .hero {
+            .stats-section {
                 flex-direction: column;
-                gap: 1.5rem;
-            }
-            
-            .hero-left,
-            .hero-right {
-                max-width: 100%;
-                text-align: center;
+                align-items: center;
             }
         }
         
-        @media (max-width: 768px) {
+        @media (min-width: 480px) and (max-width: 639px) {
             .hero-heading,
             .hero-subheading {
-                font-size: 2rem;
+                font-size: clamp(2.25rem, 6vw, 3rem);
+            }
+        }
+        
+        @media (min-width: 640px) and (max-width: 767px) {
+            .hero-heading,
+            .hero-subheading {
+                font-size: clamp(2.5rem, 7vw, 3.5rem);
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .hero-heading,
+            .hero-subheading {
+                font-size: clamp(3rem, 8vw, 3.75rem);
+            }
+        }
+        
+        @media (min-width: 1280px) {
+            .container {
+                max-width: 1200px;
+            }
+        }
+        
+        @media (min-width: 1536px) {
+            .container {
+                max-width: 1400px;
+            }
+        }
+        
+        @media (min-width: 1920px) {
+            .container {
+                max-width: 1600px;
+            }
+        }
+        
+        /* Landscape orientation adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .main-wrapper {
+                min-height: auto;
             }
             
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
+            .hero {
+                padding: 1rem 0;
             }
             
-            .nav-links {
-                width: 100%;
-                justify-content: space-between;
-            }
-            
-            .cta-section {
-                flex-direction: column;
-            }
-            
-            .cta-button {
-                width: 100%;
-                justify-content: center;
+            .accent-bar {
+                margin: 0.5rem 0;
+                padding: 0.5rem 0;
             }
         }
     </style>
@@ -2153,7 +2474,7 @@ const landingTemplate = `<!DOCTYPE html>
                     </div>
                 </div>
                 <div class="nav-links">
-                    <a href="/">Main Page</a>
+                    <a href="/generator">Generator Page</a>
                     <span>|</span>
                     <a href="#">English</a>
                 </div>
