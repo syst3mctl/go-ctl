@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/syst3mctl/go-ctl/internal/generator"
@@ -52,31 +51,7 @@ func main() {
 	http.HandleFunc("/file-content", handleFileContent)
 
 	// Serve static files
-	// Try multiple possible locations for static files
-	staticDirs := []string{
-		"./static",           // Current directory (Docker container)
-		"../static",          // Parent directory
-		"../../static",       // Two levels up (development)
-		filepath.Join(filepath.Dir(os.Args[0]), "static"), // Next to binary
-	}
-
-	var staticDir string
-	for _, dir := range staticDirs {
-		if _, err := os.Stat(filepath.Join(dir, "Group110.svg")); err == nil {
-			staticDir = dir
-			log.Printf("Found static files in: %s", staticDir)
-			break
-		}
-	}
-
-	if staticDir == "" {
-		log.Printf("Warning: Static files not found in any of the expected locations: %v", staticDirs)
-		log.Println("The SVG logo may not load. Make sure static files are included in your deployment.")
-		// Still try to serve from ./static as fallback
-		staticDir = "./static"
-	}
-
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 
 	// Get port from environment or default to 8080
 	port := os.Getenv("PORT")

@@ -46,12 +46,6 @@ COPY --from=builder --chown=goctl:goctl /app/static/ ./static/
 COPY --from=builder --chown=goctl:goctl /app/templates/ ./templates/
 COPY --from=builder --chown=goctl:goctl /app/options.json ./
 
-# Verify static files are present (run as root before switching user)
-RUN ls -la ./static/ && \
-    test -f ./static/Group110.svg && \
-    echo "✓ Static files verified" || \
-    (echo "✗ ERROR: Static files missing!" && exit 1)
-
 # Set ownership
 RUN chown -R goctl:goctl /app
 

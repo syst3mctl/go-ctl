@@ -172,7 +172,7 @@ bench.txt
 
 # Performance profiles
 *.pprof
-*.svg
+# *.svg
 *.png
 
 # Database files
