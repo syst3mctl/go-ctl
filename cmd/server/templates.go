@@ -2050,6 +2050,24 @@ const landingTemplate = `<!DOCTYPE html>
             width: 100%;
         }
         
+        @media (min-width: 1920px) {
+            .container {
+                padding: 0 clamp(1rem, 3vw, 2rem);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .container {
+                padding: 0 clamp(2rem, 4vw, 3rem);
+            }
+        }
+        
+        @media (min-width: 3200px) {
+            .container {
+                padding: 0 clamp(3rem, 5vw, 4rem);
+            }
+        }
+        
         /* Header */
         header {
             padding: clamp(1rem, 2vw, 1.5rem) 0;
@@ -2402,6 +2420,79 @@ const landingTemplate = `<!DOCTYPE html>
         @media (min-width: 1920px) {
             .container {
                 max-width: 1600px;
+            }
+            
+            .hero-heading,
+            .hero-subheading {
+                font-size: clamp(4rem, 4vw, 5rem);
+            }
+            
+            .stat-number {
+                font-size: clamp(2rem, 2.5vw, 2.5rem);
+            }
+            
+            .stat-label {
+                font-size: clamp(0.85rem, 1vw, 1rem);
+            }
+        }
+        
+        @media (min-width: 2560px) {
+            .container {
+                max-width: 1800px;
+            }
+            
+            .hero-heading,
+            .hero-subheading {
+                font-size: clamp(5rem, 3.5vw, 6rem);
+            }
+            
+            .stat-number {
+                font-size: clamp(2.5rem, 2vw, 3rem);
+            }
+            
+            .stat-label {
+                font-size: clamp(1rem, 1.2vw, 1.2rem);
+            }
+            
+            .cta-button {
+                font-size: clamp(0.95rem, 1vw, 1.1rem);
+                padding: 1rem 2.5rem;
+            }
+        }
+        
+        @media (min-width: 3200px) {
+            .container {
+                max-width: 2000px;
+            }
+            
+            .hero-heading,
+            .hero-subheading {
+                font-size: 7rem;
+            }
+            
+            .stat-number {
+                font-size: 3.5rem;
+            }
+            
+            .stat-label {
+                font-size: 1.5rem;
+            }
+            
+            .cta-button {
+                font-size: 1.25rem;
+                padding: 1.25rem 3rem;
+            }
+            
+            .accent-bar-item {
+                font-size: 1.5rem;
+            }
+            
+            .nav-links {
+                font-size: 1.1rem;
+            }
+            
+            .logo-text {
+                font-size: 2.5rem;
             }
         }
         
